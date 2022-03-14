@@ -62,7 +62,7 @@ class _MyAppState extends State<MyApp> {
               final targetChildIndex = path.last;
               final targetAxis = axis;
 
-              bool reorderInSameParent = false;
+              bool isReorderInSameParent = false;
 
               /**
                1) insert
@@ -92,23 +92,35 @@ class _MyAppState extends State<MyApp> {
 
                   final sourceNode = tree.extractPath(sourcePath) as WindowManagerLeaf;
 
+                  // cant just skip, since in this case we want to keep the same sizes
+                  int sourceInTargetsParent =
+                      branch.children.indexWhere((e) => (e is WindowManagerLeaf && e.id == sourceNode.id));
+                  if (sourceInTargetsParent != -1) {
+                    isReorderInSameParent = true;
+                  }
+
                   for (int i = 0; i < branch.children.length; i++) {
                     final targetChild = branch.children[i];
 
                     // Skip if the sourceNode is already present in the targets parent (i.e. reorder inside of parent)
-                    if (targetChild is WindowManagerLeaf && targetChild.id == sourceNode.id) {
-                      reorderInSameParent = true;
+                    if (i == sourceInTargetsParent) {
                       continue;
                     }
 
                     if (i == targetChildIndex) {
+                      // on reorder in same parent we want to keep the same sizes, otherwise we split the size of the target between the two
+                      final newTargetFraction =
+                          isReorderInSameParent ? targetChild.fraction : targetChild.fraction * 0.5;
+                      final newSourceFraction =
+                          isReorderInSameParent ? sourceNode.fraction : targetChild.fraction * 0.5;
+
                       if (pos.isLeft || pos.isTop) {
-                        children.add(sourceNode.updateFraction(targetChild.fraction * 0.5));
+                        children.add(sourceNode.updateFraction(newSourceFraction));
                       }
-                      children.add(targetChild.updateFraction(targetChild.fraction * 0.5));
+                      children.add(targetChild.updateFraction(newTargetFraction));
 
                       if (pos.isRight || pos.isBottom) {
-                        children.add(sourceNode.updateFraction(targetChild.fraction * 0.5));
+                        children.add(sourceNode.updateFraction(newSourceFraction));
                       }
                     } else {
                       children.add(branch.children[i]);
@@ -125,7 +137,7 @@ class _MyAppState extends State<MyApp> {
               //    -- other axis
               //      => replace child with branch and insert child and source there (both .5 fraction)
 
-              if (!reorderInSameParent) {
+              if (!isReorderInSameParent) {
                 // 2) remove
                 //  a) remove from parent
                 //  b) iff parent child.lenght == 1
