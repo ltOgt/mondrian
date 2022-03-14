@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/src/widgets/framework.dart';
 
 /// The index for each child that must be passed to reach the destination node.
 typedef WindowManagerTreePath = List<int>;
@@ -133,6 +134,29 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
   @override
   WindowManagerNodeAbst updateFraction(double newFraction) =>
       WindowManagerBranch(children: children, fraction: newFraction);
+
+  WindowManagerBranch updateChildFraction({required int index, required double newFraction}) {
+    final child1 = children[index];
+    final child2 = children[index + 1];
+
+    final diff = child1.fraction - newFraction;
+    final child1Updated = child1.updateFraction(newFraction);
+    final child2Updated = child2.updateFraction(child2.fraction + diff);
+
+    return WindowManagerBranch(
+      fraction: fraction,
+      children: [
+        for (int i = 0; i < children.length; i++)
+          if (i == index) ...[
+            child1Updated,
+          ] else if (i == index + 1) ...[
+            child2Updated,
+          ] else ...[
+            children[i],
+          ]
+      ],
+    );
+  }
 
   @override
   bool operator ==(Object other) {
