@@ -6,8 +6,15 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  var tree = k_tree;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +25,34 @@ class MyApp extends StatelessWidget {
         body: MondrianWM(
           tree: tree,
           initialAxis: Axis.vertical,
-          onResize: (path, newFraction) {},
+          onResize: (pathToParent, newFraction, index) {
+            tree = tree.updatePath(pathToParent, (node) {
+              final branch = node as WindowManagerBranch;
+              final child1 = branch.children[index];
+              final child2 = branch.children[index + 1];
+
+              final diff = child1.fraction - newFraction;
+              final child1Updated = child1.updateFraction(newFraction);
+              final child2Updated = child2.updateFraction(child2.fraction + diff);
+
+              print("newFraction: $newFraction; c1.old: ${child1.fraction}, c1.new: ${child1Updated.fraction}");
+
+              return WindowManagerBranch(
+                fraction: branch.fraction,
+                children: [
+                  for (int i = 0; i < branch.children.length; i++)
+                    if (i == index) ...[
+                      child1Updated,
+                    ] else if (i == index + 1) ...[
+                      child2Updated,
+                    ] else ...[
+                      branch.children[i],
+                    ]
+                ],
+              );
+            });
+            setState(() {});
+          },
           resolveLeafToWidget: (id) => WindowExample(id.value),
         ),
       ),
@@ -26,7 +60,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-const tree = WindowManagerTree(
+const k_tree = WindowManagerTree(
   rootNode: WindowManagerBranch(
     fraction: 1,
     children: [

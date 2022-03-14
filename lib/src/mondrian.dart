@@ -45,9 +45,10 @@ class MondrianWM extends StatelessWidget {
   final WindowManagerTree tree;
 
   /// Called when a the seperator between two nodes is used to resize the nodes next to it.
-  /// The [path] points to the node before the seperator.
+  /// The [pathToParent] points to the parent branch in which the children have been resized.
+  /// The [index] points to the node before the seperator inside the list of children pointerd to by [pathToParent].
   /// The [newFraction] also points to the node before the seperator, the difference must be subtracted from the node after.
-  final void Function(WindowManagerTreePath path, double newFraction) onResize;
+  final void Function(WindowManagerTreePath pathToParent, double newFraction, int index) onResize;
 
   /// Resolve leafs to the widgets representing them.
   final LeafResolver resolveLeafToWidget;
@@ -80,20 +81,31 @@ class _MondrianNode extends StatelessWidget {
   final Axis axis;
 
   /// See [MondrianWM.onResize]
-  final void Function(WindowManagerTreePath path, double newFraction) onResize;
+  final void Function(WindowManagerTreePath pathToParent, double newFraction, int index) onResize;
 
   /// See [MondrianWM.resolveLeafToWidget]
   final LeafResolver resolveLeafToWidget;
 
   final WindowManagerTreePath path;
 
-  void onDragUpdate(DragUpdateDetails d, BoxConstraints bc, int index) {
-    final double deltaAxis = axis.isHorizontal ? d.delta.dx : d.delta.dy;
-    final double maxExtendAxis = axis.isHorizontal ? bc.maxWidth : bc.maxHeight;
-    print("drag update");
-  }
-
   static const double _dragWidth = 2;
+
+  void onDragUpdate(DragUpdateDetails d, BoxConstraints bc, int index) {
+    final delta = d.delta;
+
+    final double deltaAxis = axis.isHorizontal ? delta.dx : delta.dy;
+    final double maxExtendAxis = axis.isHorizontal ? bc.maxWidth : bc.maxHeight;
+
+    /// xtnd = max * frac
+    /// xtnd' = max * frac'
+    /// frac' = xtnd' / max
+
+    final double oldExtend = maxExtendAxis * (node as WindowManagerBranch).children[index].fraction;
+    final double newFraction = (oldExtend + deltaAxis) / maxExtendAxis;
+    final double newFractionRound = double.parse(newFraction.toStringAsFixed(3));
+
+    onResize(path, newFractionRound, index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,8 +126,8 @@ class _MondrianNode extends StatelessWidget {
             onHorizontalDragUpdate: axis.isHorizontal ? (d) => onDragUpdate(d, constraints, i) : null,
             child: Container(
               color: Colors.blue,
-              width: axis.isHorizontal ? _dragWidth : null,
-              height: axis.isVertical ? _dragWidth : null,
+              width: axis.isHorizontal ? _MondrianNode._dragWidth : null,
+              height: axis.isVertical ? _MondrianNode._dragWidth : null,
             ),
           ),
         );

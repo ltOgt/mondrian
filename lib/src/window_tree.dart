@@ -43,6 +43,8 @@ abstract class WindowManagerNodeAbst {
   const WindowManagerNodeAbst();
 
   WindowManagerNodeAbst updatePath(WindowManagerTreePath path, NodeUpdater updateNode);
+
+  WindowManagerNodeAbst updateFraction(double newFraction);
 }
 
 /// Id to identify a [WindowManagerLeaf]
@@ -79,6 +81,9 @@ class WindowManagerLeaf extends WindowManagerNodeAbst {
     assert(path.isEmpty, "Arrived at leaf, but path is not yet empty: $path");
     return updateNode(this);
   }
+
+  @override
+  WindowManagerNodeAbst updateFraction(double newFraction) => WindowManagerLeaf(id: id, fraction: newFraction);
 
   @override
   bool operator ==(Object other) {
@@ -124,6 +129,10 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
       ],
     );
   }
+
+  @override
+  WindowManagerNodeAbst updateFraction(double newFraction) =>
+      WindowManagerBranch(children: children, fraction: newFraction);
 
   @override
   bool operator ==(Object other) {
