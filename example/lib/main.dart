@@ -139,6 +139,9 @@ class WindowExample extends StatelessWidget {
         ),
         Expanded(
           child: WindowMoveTarget(
+            onDrop: (pos) {
+              print("Hit <$text> at pos <$pos>");
+            },
             isActive: isMoving,
             target: Container(
               color: Colors.red,
