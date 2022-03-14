@@ -221,7 +221,7 @@ class _MyAppState extends State<MyApp> {
 
                     if (adjustedChildren.length == 1) {
                       // Need to flip axis here to preserve orientation, since changing top level
-                      initialAxis = Axis.values[(initialAxis.index + 1) % (Axis.values.length - 1)];
+                      initialAxis = Axis.values[(initialAxis.index + 1) % Axis.values.length];
 
                       final onlyChild = adjustedChildren.first;
                       if (onlyChild is WindowManagerLeaf) {
