@@ -23,6 +23,16 @@ class WindowManagerTree {
     throw "Unknown type ${rootNode.runtimeType}";
   }
 
+  WindowManagerNodeAbst extractPath(WindowManagerTreePath path) {
+    if (rootNode is WindowManagerLeaf) {
+      assert(path.isEmpty);
+      return rootNode;
+    } else if (rootNode is WindowManagerBranch) {
+      return (rootNode as WindowManagerBranch).extractPath(path);
+    }
+    throw "Unknown type ${rootNode.runtimeType}";
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -129,6 +139,19 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
           ]
       ],
     );
+  }
+
+  WindowManagerNodeAbst extractPath(WindowManagerTreePath path) {
+    final child = children[path.first];
+    final remainder = path.skip(1).toList();
+
+    if (child is WindowManagerLeaf) {
+      assert(remainder.isEmpty);
+      return child;
+    } else if (child is WindowManagerBranch) {
+      return child.extractPath(remainder);
+    }
+    throw "Unknown type ${child.runtimeType}";
   }
 
   @override

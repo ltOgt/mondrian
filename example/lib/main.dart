@@ -17,6 +17,7 @@ class _MyAppState extends State<MyApp> {
   var tree = k_tree;
 
   WindowManagerLeafId? movingId;
+  List<int>? lastMovingPath;
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +37,15 @@ class _MyAppState extends State<MyApp> {
             });
             setState(() {});
           },
-          resolveLeafToWidget: (id) => WindowExample(
+          resolveLeafToWidget: (id, path, axis) => WindowExample(
+            // Needed to put in meta data <
+            path: path,
+            axis: axis,
+            // Needed to put in meta data >
             text: id.value,
             onMoveStart: () {
               movingId = id;
+              lastMovingPath = path;
               setState(() {});
             },
             onMoveEnd: () {
@@ -48,6 +54,89 @@ class _MyAppState extends State<MyApp> {
             },
             onMoveUpdate: (d) {},
             isMoving: movingId != null && movingId != id,
+            onDrop: (pos) {
+              final sourcePath = lastMovingPath!;
+
+              final targetPath = path;
+              final targetPathToParent = path.sublist(0, path.length - 1);
+              final targetChildIndex = path.last;
+              final targetAxis = axis;
+
+              bool reorderInSameParent = false;
+
+              /**
+               1) insert
+                a) _
+                  -- same axis
+                    => insert into parent (Split fraction of previous child between prev and new)
+                  -- other axis
+                    => replace child with branch and insert child and source there (both .5 fraction)
+               2) remove
+                a) remove from parent
+                b) iff parent child.lenght == 1
+                  => remove parent and insert child with parents fraction
+               */
+
+              if (pos.isCenter) throw UnimplementedError("TODO Need to implement tabbing"); // TODO __________
+
+              // 1) insert
+              //  a) _
+              //    -- same axis
+              bool bothHorizontal = (pos.isLeft || pos.isRight) && targetAxis == Axis.horizontal;
+              bool bothVertical = (pos.isTop || pos.isBottom) && targetAxis == Axis.vertical;
+              if (bothHorizontal || bothVertical) {
+                //      => insert into parent (Split fraction of previous child between prev and new)
+                tree = tree.updatePath(targetPathToParent, (node) {
+                  final branch = node as WindowManagerBranch;
+                  final children = <WindowManagerNodeAbst>[];
+
+                  final sourceNode = tree.extractPath(sourcePath) as WindowManagerLeaf;
+
+                  for (int i = 0; i < branch.children.length; i++) {
+                    final targetChild = branch.children[i];
+
+                    // Skip if the sourceNode is already present in the targets parent (i.e. reorder inside of parent)
+                    if (targetChild is WindowManagerLeaf && targetChild.id == sourceNode.id) {
+                      reorderInSameParent = true;
+                      continue;
+                    }
+
+                    if (i == targetChildIndex) {
+                      if (pos.isLeft || pos.isTop) {
+                        children.add(sourceNode.updateFraction(targetChild.fraction * 0.5));
+                      }
+                      children.add(targetChild.updateFraction(targetChild.fraction * 0.5));
+
+                      if (pos.isRight || pos.isBottom) {
+                        children.add(sourceNode.updateFraction(targetChild.fraction * 0.5));
+                      }
+                    } else {
+                      children.add(branch.children[i]);
+                    }
+                  }
+
+                  return WindowManagerBranch(
+                    fraction: branch.fraction,
+                    children: children,
+                  );
+                });
+              }
+
+              //    -- other axis
+              //      => replace child with branch and insert child and source there (both .5 fraction)
+
+              if (!reorderInSameParent) {
+                // 2) remove
+                //  a) remove from parent
+                //  b) iff parent child.lenght == 1
+                //    => remove parent and insert child with parents fraction
+              }
+
+              // add to destination
+
+              print("Hit <$id> at pos <$pos>");
+              setState(() {});
+            },
           ),
         ),
       ),
@@ -109,6 +198,9 @@ class WindowExample extends StatelessWidget {
     required this.onMoveUpdate,
     required this.onMoveEnd,
     required this.isMoving,
+    required this.onDrop,
+    required this.path,
+    required this.axis,
   });
 
   final String text;
@@ -116,6 +208,12 @@ class WindowExample extends StatelessWidget {
   final Function(DragUpdateDetails d) onMoveUpdate;
   final VoidCallback onMoveEnd;
   final bool isMoving;
+  final Function(WindowMoveTargetDropPosition position) onDrop;
+
+  // Needed to put in meta data <
+  final List<int> path;
+  final Axis axis;
+  // Needed to put in meta data >
 
   @override
   Widget build(BuildContext context) {
@@ -139,9 +237,7 @@ class WindowExample extends StatelessWidget {
         ),
         Expanded(
           child: WindowMoveTarget(
-            onDrop: (pos) {
-              print("Hit <$text> at pos <$pos>");
-            },
+            onDrop: onDrop,
             isActive: isMoving,
             target: Container(
               color: Colors.red,

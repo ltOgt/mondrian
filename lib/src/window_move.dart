@@ -97,8 +97,17 @@ enum WindowMoveTargetDropPosition {
   bottom,
 }
 
+extension WindowMoveTargetDropPositionX on WindowMoveTargetDropPosition {
+  bool get isTop => this == WindowMoveTargetDropPosition.top;
+  bool get isLeft => this == WindowMoveTargetDropPosition.left;
+  bool get isCenter => this == WindowMoveTargetDropPosition.center;
+  bool get isRight => this == WindowMoveTargetDropPosition.right;
+  bool get isBottom => this == WindowMoveTargetDropPosition.bottom;
+}
+
 class WindowMoveTargetMetaData {
-  VoidCallback onDrop;
+  final VoidCallback onDrop;
+
   WindowMoveTargetMetaData({
     required this.onDrop,
   });
@@ -144,60 +153,62 @@ class WindowMoveTarget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      return Stack(
-        children: [
-          Positioned.fill(child: child),
-          if (isActive)
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // TOP
-                  _target(
-                    position: WindowMoveTargetDropPosition.top,
-                    width: _targetLarge,
-                    height: _targetSmall,
-                  ),
-                  _targetGap,
-                  // LEFT CENTER RIGHT
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // LEFT
-                      _target(
-                        position: WindowMoveTargetDropPosition.left,
-                        width: _targetSmall,
-                        height: _targetLarge,
-                      ),
-                      _targetGap,
-                      // CENTER
-                      _target(
-                        position: WindowMoveTargetDropPosition.center,
-                        width: _targetLarge,
-                        height: _targetLarge,
-                      ),
-                      _targetGap,
-                      // RIGHT
-                      _target(
-                        position: WindowMoveTargetDropPosition.right,
-                        width: _targetSmall,
-                        height: _targetLarge,
-                      ),
-                    ],
-                  ),
-                  _targetGap,
-                  // BOTTOM
-                  _target(
-                    position: WindowMoveTargetDropPosition.bottom,
-                    width: _targetLarge,
-                    height: _targetSmall,
-                  ),
-                ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: [
+            Positioned.fill(child: child),
+            if (isActive)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // TOP
+                    _target(
+                      position: WindowMoveTargetDropPosition.top,
+                      width: _targetLarge,
+                      height: _targetSmall,
+                    ),
+                    _targetGap,
+                    // LEFT CENTER RIGHT
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // LEFT
+                        _target(
+                          position: WindowMoveTargetDropPosition.left,
+                          width: _targetSmall,
+                          height: _targetLarge,
+                        ),
+                        _targetGap,
+                        // CENTER
+                        _target(
+                          position: WindowMoveTargetDropPosition.center,
+                          width: _targetLarge,
+                          height: _targetLarge,
+                        ),
+                        _targetGap,
+                        // RIGHT
+                        _target(
+                          position: WindowMoveTargetDropPosition.right,
+                          width: _targetSmall,
+                          height: _targetLarge,
+                        ),
+                      ],
+                    ),
+                    _targetGap,
+                    // BOTTOM
+                    _target(
+                      position: WindowMoveTargetDropPosition.bottom,
+                      width: _targetLarge,
+                      height: _targetSmall,
+                    ),
+                  ],
+                ),
               ),
-            ),
-        ],
-      );
-    });
+          ],
+        );
+      },
+    );
   }
 }

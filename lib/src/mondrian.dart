@@ -31,7 +31,7 @@ Column(
 )
 */
 
-typedef LeafResolver = Widget Function(WindowManagerLeafId);
+typedef LeafResolver = Widget Function(WindowManagerLeafId, WindowManagerTreePath path, Axis axis);
 
 class MondrianWM extends StatelessWidget {
   const MondrianWM({
@@ -110,7 +110,7 @@ class _MondrianNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (node is WindowManagerLeaf) {
-      return resolveLeafToWidget((node as WindowManagerLeaf).id);
+      return resolveLeafToWidget((node as WindowManagerLeaf).id, path, axis.previous);
     }
     final nextAxis = axis.next;
 
@@ -163,6 +163,7 @@ extension _AxisX on Axis {
   bool get isHorizontal => this == Axis.horizontal;
   bool get isVertical => this == Axis.vertical;
 
+  Axis get previous => next;
   Axis get next {
     switch (this) {
       case Axis.horizontal:
