@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
@@ -19,6 +20,8 @@ class _MyAppState extends State<MyApp> {
   WindowManagerLeafId? movingId;
   List<int>? lastMovingPath;
 
+  Axis initialAxis = Axis.vertical;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -27,7 +30,7 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         body: MondrianWM(
           tree: tree,
-          initialAxis: Axis.vertical,
+          initialAxis: initialAxis,
           onResize: (pathToParent, newFraction, index) {
             tree = tree.updatePath(pathToParent, (node) {
               return (node as WindowManagerBranch).updateChildFraction(
@@ -56,14 +59,18 @@ class _MyAppState extends State<MyApp> {
             isMoving: movingId != null && movingId != id,
             onDrop: (pos) {
               final sourcePath = lastMovingPath!;
+              final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
               final sourceNode = tree.extractPath(sourcePath) as WindowManagerLeaf;
 
               final targetPath = path;
-              final targetPathToParent = path.sublist(0, path.length - 1);
-              final targetChildIndex = path.last;
+              final targetPathToParent = targetPath.sublist(0, targetPath.length - 1);
+              final targetChildIndex = targetPath.last;
               final targetAxis = axis;
 
               bool isReorderInSameParent = false;
+
+              // TODO !!!!! special case if root is branch with only two leaf children and they want to change axis
+              // => just change initial axis
 
               /**
                1) insert
@@ -74,8 +81,31 @@ class _MyAppState extends State<MyApp> {
                     => replace child with branch and insert child and source there (both .5 fraction)
                2) remove
                 a) remove from parent
-                b) iff parent child.lenght == 1
-                  => remove parent and insert child with parents fraction
+                b) iff parent-P child.lenght == 1
+                  -- child-C is leaf
+                    => remove parent-P and insert child-C with parents fraction
+                  -- child-C is branch
+                    => remove parent-P and extract children of child-C into parent-Ps parent, splitting parent-Ps fraction among child-Cs children
+                      0) _
+                         Col(
+                           Row(
+                             Col(C1,C2),
+                             C3
+                           ),
+                           C4
+                         )
+                      1) REMOVE C3
+                      2) WRONG:
+                         Col(
+                           Row(C1,C2), // Col would be turned into row since col=>row=>col=>...
+                           C4
+                         )
+                      2) RIGHT:
+                         Col(
+                           C1,
+                           C2, // C1 and C2 remaing visually under each other
+                           C4
+                         )
                */
 
               if (pos.isCenter) throw UnimplementedError("TODO Need to implement tabbing"); // TODO __________
@@ -85,7 +115,8 @@ class _MyAppState extends State<MyApp> {
               //    -- same axis
               bool bothHorizontal = (pos.isLeft || pos.isRight) && targetAxis == Axis.horizontal;
               bool bothVertical = (pos.isTop || pos.isBottom) && targetAxis == Axis.vertical;
-              if (bothHorizontal || bothVertical) {
+              bool bothSameAxis = bothHorizontal || bothVertical;
+              if (bothSameAxis) {
                 //      => insert into parent (Split fraction of previous child between prev and new)
                 tree = tree.updatePath(targetPathToParent, (node) {
                   final branch = node as WindowManagerBranch;
@@ -126,6 +157,28 @@ class _MyAppState extends State<MyApp> {
                     }
                   }
 
+                  // TODO might need to adjust the source parent path at this point
+                  // § source [0,1,0] with target [0,0] on same axis
+                  // _ => will result in target parent (0,1) => (0,1,2)
+                  // _ _ -- insert before
+                  // _ _ _ => target is now at [0,1]
+                  // _ _ _ => source is now at [0,0]
+                  // _ _ _ => source old parent is now at [0,2] instead of [0,1]
+                  // _ _ -- insert after
+                  // _ _ _ => target is now at [0,0]
+                  // _ _ _ => source is now at [0,1]
+                  // _ _ _ => source old parent is now at [0,2] instead of [0,1]
+                  // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
+                  if (sourcePathToParent.length >= targetPathToParent.length) {
+                    final potentiallySharedParentPath = sourcePathToParent.sublist(0, targetPathToParent.length);
+                    if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
+                      // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
+                      if (sourcePath[targetPath.length - 1] > targetPath.last) {
+                        sourcePathToParent[targetPath.length - 1] += 1;
+                      }
+                    }
+                  }
+
                   return WindowManagerBranch(
                     fraction: branch.fraction,
                     children: children,
@@ -153,38 +206,127 @@ class _MyAppState extends State<MyApp> {
               }
 
               if (!isReorderInSameParent) {
+                late final List<WindowManagerNodeAbst> adjustedChildren;
                 // 2) remove
-                //  a) remove from parent
-                //  b) iff parent-P child.lenght == 1
-                //    -- child-C is leaf
-                //      => remove parent-P and insert child-C with parents fraction
-                //    -- child-C is branch
-                //      => remove parent-P and extract children of child-C into parent-Ps parent, splitting parent-Ps fraction among child-Cs children
-                //        0) _
-                //           Col(
-                //             Row(
-                //               Col(C1,C2),
-                //               C3
-                //             ),
-                //             C4
-                //           )
-                //        1) REMOVE C3
-                //        2) WRONG:
-                //           Col(
-                //             Row(C1,C2), // Col would be turned into row since col=>row=>col=>...
-                //             C4
-                //           )
-                //        2) RIGHT:
-                //           Col(
-                //             C1,
-                //             C2, // C1 and C2 remaing visually under each other
-                //             C4
-                //           )
+
+                if (sourcePathToParent.isEmpty) {
+                  tree = tree.updatePath(sourcePathToParent, (parent) {
+                    final branch = (parent as WindowManagerBranch);
+
+                    adjustedChildren = [
+                      for (final child in branch.children) //
+                        if (false == (child is WindowManagerLeaf && child.id == sourceNode.id)) //
+                          child,
+                    ];
+
+                    if (adjustedChildren.length == 1) {
+                      final onlyChild = adjustedChildren.first;
+                      if (onlyChild is WindowManagerLeaf) {
+                        return WindowManagerLeaf(id: onlyChild.id, fraction: parent.fraction);
+                      }
+                      if (onlyChild is WindowManagerBranch) {
+                        return WindowManagerBranch(
+                          fraction: branch.fraction,
+                          children: onlyChild.children,
+                        );
+                      }
+                      throw "Unknown node type: ${onlyChild.runtimeType}";
+                    } else {
+                      return WindowManagerBranch(
+                        fraction: branch.fraction,
+                        children: adjustedChildren,
+                      );
+                    }
+                  });
+                  if (tree.rootNode is WindowManagerBranch &&
+                      (tree.rootNode as WindowManagerBranch).children.length == 1) {
+                    // flip axis
+                    initialAxis = Axis.values[(initialAxis.index + 1) % (Axis.values.length - 1)];
+                  }
+                } else {
+                  final sourcePathToParentsParent = sourcePathToParent.sublist(0, sourcePathToParent.length - 1);
+                  final sourcePathToParentIndex = sourcePathToParent.last;
+
+                  tree = tree.updatePath(sourcePathToParentsParent, (parentsParent) {
+                    final parent = (parentsParent as WindowManagerBranch).children[sourcePathToParentIndex];
+                    final branch = (parent as WindowManagerBranch);
+
+                    adjustedChildren = [
+                      for (final child in branch.children) //
+                        if (false == (child is WindowManagerLeaf && child.id == sourceNode.id)) //
+                          child,
+                    ];
+
+                    if (adjustedChildren.length == 1) {
+                      final onlyChild = adjustedChildren.first;
+                      if (onlyChild is WindowManagerLeaf) {
+                        // replace parent with only child
+                        final replacedParentInsideParentsParent = parentsParent.children;
+                        replacedParentInsideParentsParent[sourcePathToParentIndex] =
+                            WindowManagerLeaf(id: onlyChild.id, fraction: parent.fraction);
+
+                        return WindowManagerBranch(
+                          fraction: parentsParent.fraction,
+                          children: replacedParentInsideParentsParent,
+                        );
+                      }
+                      if (onlyChild is WindowManagerBranch) {
+                        // TODO SPECIAL CASE: Can happen that two containers have to replaced
+                        // § Row(Col(A, B), ...) with A move right to B => Row(Col(_,Row(A,B)), ...) SHOULD ACTUALLY BE => Row(A, B, ...)
+                        if (onlyChild.children.length == 2 || parentsParent.children.length == 2) {
+                          // TODO check if this actually makes sense
+                          final replacedParentInsideParentsParent = [
+                            for (int i = 0; i < parentsParent.children.length; i++)
+                              if (i == sourcePathToParentIndex) ...[
+                                for (int j = 0; j < onlyChild.children.length; j++) ...[
+                                  onlyChild.children[j]
+                                      .updateFraction(parent.fraction * (1 / onlyChild.children.length)),
+                                ]
+                              ] else ...[
+                                parentsParent.children[i],
+                              ]
+                          ];
+                          // PARENTs PARENT (removed direct parent, as well as direct child)
+                          return WindowManagerBranch(
+                            fraction: parentsParent.fraction,
+                            children: replacedParentInsideParentsParent,
+                          );
+                        } else {
+                          // final replacedParentInsideParentsParent = [for (int i = 0; i < parentsParent.children.length; i++)
+                          //   if (i == sourcePathToParentIndex)
+                          // ];
+                          final replacedParentInsideParentsParent = parentsParent.children;
+
+                          replacedParentInsideParentsParent[sourcePathToParentIndex] = WindowManagerBranch(
+                            fraction: branch.fraction,
+                            children: onlyChild.children,
+                          );
+
+                          // PARENTs PARENT (removed direct parent, since only one child left)
+                          return WindowManagerBranch(
+                            fraction: parentsParent.fraction,
+                            children: replacedParentInsideParentsParent,
+                          );
+                        }
+                      }
+                      throw "Unknown node type: ${onlyChild.runtimeType}";
+                    } else {
+                      // PARENT
+                      final replacedParentInsideParentsParent = parentsParent.children;
+                      replacedParentInsideParentsParent[sourcePathToParentIndex] = WindowManagerBranch(
+                        fraction: branch.fraction,
+                        children: adjustedChildren,
+                      );
+
+                      // PARENTs PARENT (no change done here, needed for case above)
+                      return WindowManagerBranch(
+                        fraction: parentsParent.fraction,
+                        children: replacedParentInsideParentsParent,
+                      );
+                    }
+                  });
+                }
               }
-
-              // add to destination
-
-              print("Hit <$id> at pos <$pos>");
               setState(() {});
             },
           ),
