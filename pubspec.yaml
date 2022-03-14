@@ -1,0 +1,21 @@
+name: mondrian
+description: A simple window manager for flutter.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ">=2.17.0-182.0.dev <3.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ltogt_utils_flutter:
+    path: ../ltogt_utils_flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^1.0.0
+
+flutter:
