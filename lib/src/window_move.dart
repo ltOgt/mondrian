@@ -132,8 +132,8 @@ class WindowMoveTarget extends StatelessWidget {
         metaData: WindowMoveTargetMetaData(
           onDrop: () => onDrop(position),
         ),
-        child: AnnotatedRegion(
-          value: "ANNOTATION",
+        child: MouseRegion(
+          cursor: SystemMouseCursors.cell,
           child: SizedBox(
             width: width,
             height: height,

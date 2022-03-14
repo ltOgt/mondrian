@@ -16,7 +16,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   var tree = k_tree;
 
-  bool isMoving = false;
+  WindowManagerLeafId? movingId;
 
   @override
   Widget build(BuildContext context) {
@@ -39,15 +39,15 @@ class _MyAppState extends State<MyApp> {
           resolveLeafToWidget: (id) => WindowExample(
             text: id.value,
             onMoveStart: () {
-              isMoving = true;
+              movingId = id;
               setState(() {});
             },
             onMoveEnd: () {
-              isMoving = false;
+              movingId = null;
               setState(() {});
             },
             onMoveUpdate: (d) {},
-            isMoving: isMoving,
+            isMoving: movingId != null && movingId != id,
           ),
         ),
       ),
