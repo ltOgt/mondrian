@@ -16,6 +16,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   var tree = k_tree;
 
+  bool isMoving = false;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -34,7 +36,19 @@ class _MyAppState extends State<MyApp> {
             });
             setState(() {});
           },
-          resolveLeafToWidget: (id) => WindowExample(id.value),
+          resolveLeafToWidget: (id) => WindowExample(
+            text: id.value,
+            onMoveStart: () {
+              isMoving = true;
+              setState(() {});
+            },
+            onMoveEnd: () {
+              isMoving = false;
+              setState(() {});
+            },
+            onMoveUpdate: (d) {},
+            isMoving: isMoving,
+          ),
         ),
       ),
     );
@@ -89,19 +103,52 @@ const k_tree = WindowManagerTree(
 );
 
 class WindowExample extends StatelessWidget {
-  const WindowExample(this.text);
+  const WindowExample({
+    required this.text,
+    required this.onMoveStart,
+    required this.onMoveUpdate,
+    required this.onMoveEnd,
+    required this.isMoving,
+  });
 
   final String text;
+  final VoidCallback onMoveStart;
+  final Function(DragUpdateDetails d) onMoveUpdate;
+  final VoidCallback onMoveEnd;
+  final bool isMoving;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      // decoration: BoxDecoration(
-      //   border: Border.all(color: Colors.blueAccent),
-      // ),
-      child: Center(
-        child: AutoSizeText(text: text),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        WindowMoveHandle(
+          dragIndicator: Container(
+            height: 100,
+            width: 100,
+            color: Colors.white.withAlpha(100),
+          ),
+          child: Container(
+            height: 10,
+            color: Colors.black,
+          ),
+          onMoveEnd: onMoveEnd,
+          onMoveStart: onMoveStart,
+          onMoveUpdate: onMoveUpdate,
+        ),
+        Expanded(
+          child: WindowMoveTarget(
+            isActive: isMoving,
+            target: Container(
+              color: Colors.red,
+            ),
+            child: Center(
+              child: AutoSizeText(text: text),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
