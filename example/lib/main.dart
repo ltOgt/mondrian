@@ -220,6 +220,9 @@ class _MyAppState extends State<MyApp> {
                     ];
 
                     if (adjustedChildren.length == 1) {
+                      // Need to flip axis here to preserve orientation, since changing top level
+                      initialAxis = Axis.values[(initialAxis.index + 1) % (Axis.values.length - 1)];
+
                       final onlyChild = adjustedChildren.first;
                       if (onlyChild is WindowManagerLeaf) {
                         return WindowManagerLeaf(id: onlyChild.id, fraction: parent.fraction);
@@ -238,11 +241,6 @@ class _MyAppState extends State<MyApp> {
                       );
                     }
                   });
-                  if (tree.rootNode is WindowManagerBranch &&
-                      (tree.rootNode as WindowManagerBranch).children.length == 1) {
-                    // flip axis
-                    initialAxis = Axis.values[(initialAxis.index + 1) % (Axis.values.length - 1)];
-                  }
                 } else {
                   final sourcePathToParentsParent = sourcePathToParent.sublist(0, sourcePathToParent.length - 1);
                   final sourcePathToParentIndex = sourcePathToParent.last;
@@ -271,10 +269,10 @@ class _MyAppState extends State<MyApp> {
                         );
                       }
                       if (onlyChild is WindowManagerBranch) {
-                        // TODO SPECIAL CASE: Can happen that two containers have to replaced
                         // § Row(Col(A, B), ...) with A move right to B => Row(Col(_,Row(A,B)), ...) SHOULD ACTUALLY BE => Row(A, B, ...)
-                        if (onlyChild.children.length == 2 || parentsParent.children.length == 2) {
-                          // TODO check if this actually makes sense
+                        if (false == onlyChild.children.any((e) => e is WindowManagerBranch)) {
+                          // TODO previously also had this check in here: /*|| parentsParent.children.length < 3*/ not sure if that was just a hack during fixing
+
                           final replacedParentInsideParentsParent = [
                             for (int i = 0; i < parentsParent.children.length; i++)
                               if (i == sourcePathToParentIndex) ...[
