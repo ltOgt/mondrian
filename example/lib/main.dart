@@ -56,6 +56,7 @@ class _MyAppState extends State<MyApp> {
             isMoving: movingId != null && movingId != id,
             onDrop: (pos) {
               final sourcePath = lastMovingPath!;
+              final sourceNode = tree.extractPath(sourcePath) as WindowManagerLeaf;
 
               final targetPath = path;
               final targetPathToParent = path.sublist(0, path.length - 1);
@@ -89,8 +90,6 @@ class _MyAppState extends State<MyApp> {
                 tree = tree.updatePath(targetPathToParent, (node) {
                   final branch = node as WindowManagerBranch;
                   final children = <WindowManagerNodeAbst>[];
-
-                  final sourceNode = tree.extractPath(sourcePath) as WindowManagerLeaf;
 
                   // cant just skip, since in this case we want to keep the same sizes
                   int sourceInTargetsParent =
@@ -132,16 +131,55 @@ class _MyAppState extends State<MyApp> {
                     children: children,
                   );
                 });
-              }
+              } else {
+                //    -- other axis
+                //      => replace child with branch and insert child and source there (both .5 fraction)
+                tree = tree.updatePath(targetPath, (node) {
+                  final leaf = node as WindowManagerLeaf;
 
-              //    -- other axis
-              //      => replace child with branch and insert child and source there (both .5 fraction)
+                  return WindowManagerBranch(
+                    fraction: leaf.fraction,
+                    children: [
+                      if (pos.isLeft || pos.isTop) ...[
+                        sourceNode.updateFraction(0.5),
+                      ],
+                      leaf.updateFraction(0.5),
+                      if (pos.isRight || pos.isBottom) ...[
+                        sourceNode.updateFraction(0.5),
+                      ],
+                    ],
+                  );
+                });
+              }
 
               if (!isReorderInSameParent) {
                 // 2) remove
                 //  a) remove from parent
-                //  b) iff parent child.lenght == 1
-                //    => remove parent and insert child with parents fraction
+                //  b) iff parent-P child.lenght == 1
+                //    -- child-C is leaf
+                //      => remove parent-P and insert child-C with parents fraction
+                //    -- child-C is branch
+                //      => remove parent-P and extract children of child-C into parent-Ps parent, splitting parent-Ps fraction among child-Cs children
+                //        0) _
+                //           Col(
+                //             Row(
+                //               Col(C1,C2),
+                //               C3
+                //             ),
+                //             C4
+                //           )
+                //        1) REMOVE C3
+                //        2) WRONG:
+                //           Col(
+                //             Row(C1,C2), // Col would be turned into row since col=>row=>col=>...
+                //             C4
+                //           )
+                //        2) RIGHT:
+                //           Col(
+                //             C1,
+                //             C2, // C1 and C2 remaing visually under each other
+                //             C4
+                //           )
               }
 
               // add to destination
