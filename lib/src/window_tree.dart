@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/src/widgets/framework.dart';
+
 import 'package:mondrian/src/utils.dart';
 
 /// The index for each child that must be passed to reach the destination node.
@@ -43,6 +44,14 @@ class WindowManagerTree {
 
   @override
   int get hashCode => rootNode.hashCode;
+
+  @override
+  String toString() {
+    //print("toString: ${_toString()}");
+    return _toString();
+  }
+
+  String _toString() => 'WindowManagerTree(rootNode: $rootNode)';
 }
 
 typedef NodeUpdater = WindowManagerNodeAbst Function(WindowManagerNodeAbst node);
@@ -73,6 +82,14 @@ class WindowManagerLeafId {
 
   @override
   int get hashCode => value.hashCode;
+
+  @override
+  String toString() {
+    //print("toString: ${_toString()}");
+    return _toString();
+  }
+
+  String _toString() => 'WindowManagerLeafId(value: $value)';
 }
 
 class WindowManagerLeaf extends WindowManagerNodeAbst {
@@ -106,6 +123,14 @@ class WindowManagerLeaf extends WindowManagerNodeAbst {
 
   @override
   int get hashCode => fraction.hashCode ^ id.hashCode;
+
+  @override
+  String toString() {
+    //print("toString: ${_toString()}");
+    return _toString();
+  }
+
+  String _toString() => 'WindowManagerLeaf(fraction: $fraction, id: $id)';
 }
 
 /// Row or Column inside the [WindowManagerTree].
@@ -196,4 +221,12 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
 
   @override
   int get hashCode => fraction.hashCode ^ children.hashCode;
+
+  @override
+  String toString() {
+    //print("toString: ${_toString()}");
+    return _toString();
+  }
+
+  String _toString() => 'WindowManagerBranch(fraction: $fraction, children: $children)';
 }

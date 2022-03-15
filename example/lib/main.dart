@@ -19,6 +19,11 @@ class _MyAppState extends State<MyApp> {
   WindowManagerLeafId? movingId;
   List<int>? lastMovingPath;
 
+  void toggleDebugPaint() {
+    MondrianDebugSingleton.instance.toggleBranchDebugPainting();
+    setState(() {});
+  }
+
   Axis initialAxis = Axis.vertical;
 
   @override
@@ -27,6 +32,10 @@ class _MyAppState extends State<MyApp> {
       title: 'Mondrian Example',
       theme: ThemeData.dark(),
       home: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: toggleDebugPaint,
+          child: const Icon(Icons.brush),
+        ),
         body: MondrianMoveable(
           axis: initialAxis,
           tree: tree,
