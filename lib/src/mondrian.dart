@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
@@ -67,6 +69,8 @@ class MondrianWidgetState extends State<MondrianWidget> {
   Widget resolveLeaf(MondrianTreeLeaf leaf, MondrianTreePath leafPath, Axis leafAxis) {
     if (leaf is MondrianTreeTabLeaf) {
       final tabLeaf = leaf;
+      const tabWidth = 100.0;
+
       return Column(
         mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,76 +79,81 @@ class MondrianWidgetState extends State<MondrianWidget> {
           // TODO must be scrollable if to long
           SizedBox(
             height: 20,
-            child: Row(
-              children: [
-                for (int i = 0; i < tabLeaf.tabs.length; i++) ...[
-                  WindowMoveHandle(
-                    dragIndicator: Container(
-                      height: 100,
-                      width: 100,
-                      color: Colors.white.withAlpha(100),
-                    ),
-                    child: GestureDetector(
-                      onTap: () {
-                        // TODO consider adding a new method for onTabSwitch or joining move and resize to onTreeChanged
-                        widget.onMoveDone(
-                          widget.tree.updatePath(leafPath, (_tabLeaf) {
-                            _tabLeaf as MondrianTreeTabLeaf;
-                            return _tabLeaf.copyWith(activeTabIndex: i);
-                          }),
-                        );
-                      },
+            child: LayoutBuilder(builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (int i = 0; i < tabLeaf.tabs.length; i++) ...[
+                      WindowMoveHandle(
+                        dragIndicator: Container(
+                          height: 100,
+                          width: 100,
+                          color: Colors.white.withAlpha(100),
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            // TODO consider adding a new method for onTabSwitch or joining move and resize to onTreeChanged
+                            widget.onMoveDone(
+                              widget.tree.updatePath(leafPath, (_tabLeaf) {
+                                _tabLeaf as MondrianTreeTabLeaf;
+                                return _tabLeaf.copyWith(activeTabIndex: i);
+                              }),
+                            );
+                          },
+                          child: Container(
+                            height: 20,
+                            width: tabWidth,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.blueAccent),
+                              color: (i == tabLeaf.activeTabIndex) ? Colors.grey : Colors.black,
+                            ),
+                            child: AutoSizeText(text: tabLeaf.tabs[i].value),
+                          ),
+                        ),
+                        onMoveEnd: () {
+                          movingId = null;
+                          setState(() {});
+                        },
+                        onMoveStart: () {
+                          movingId = tabLeaf.tabs[i];
+                          lastMovingPath = [...leafPath, i]; // ADD TAB INDEX TO PATH
+                          setState(() {});
+                        },
+                        onMoveUpdate: (d) {},
+                      ),
+                    ],
+                    // Complete lead with all tabs
+                    WindowMoveHandle(
+                      dragIndicator: Container(
+                        height: 100,
+                        width: 100,
+                        color: Colors.white.withAlpha(100),
+                      ),
                       child: Container(
                         height: 20,
-                        width: 100,
+                        width: max(constraints.maxWidth - (tabLeaf.tabs.length * tabWidth),
+                            tabWidth), // at least <tabWidth> wide
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.blueAccent),
-                          color: (i == tabLeaf.activeTabIndex) ? Colors.grey : Colors.black,
+                          color: Colors.black,
                         ),
-                        child: AutoSizeText(text: tabLeaf.tabs[i].value),
                       ),
+                      onMoveEnd: () {
+                        movingId = null;
+                        setState(() {});
+                      },
+                      onMoveStart: () {
+                        movingId = tabLeaf.id;
+                        lastMovingPath = [...leafPath]; // ADD TAB INDEX TO PATH
+                        setState(() {});
+                      },
+                      onMoveUpdate: (d) {},
                     ),
-                    onMoveEnd: () {
-                      movingId = null;
-                      setState(() {});
-                    },
-                    onMoveStart: () {
-                      movingId = tabLeaf.tabs[i];
-                      lastMovingPath = [...leafPath, i]; // ADD TAB INDEX TO PATH
-                      setState(() {});
-                    },
-                    onMoveUpdate: (d) {},
-                  ),
-                ],
-                // Complete lead with all tabs
-                Expanded(
-                  child: WindowMoveHandle(
-                    dragIndicator: Container(
-                      height: 100,
-                      width: 100,
-                      color: Colors.white.withAlpha(100),
-                    ),
-                    child: Container(
-                      height: 20,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blueAccent),
-                        color: Colors.black,
-                      ),
-                    ),
-                    onMoveEnd: () {
-                      movingId = null;
-                      setState(() {});
-                    },
-                    onMoveStart: () {
-                      movingId = tabLeaf.id;
-                      lastMovingPath = [...leafPath]; // ADD TAB INDEX TO PATH
-                      setState(() {});
-                    },
-                    onMoveUpdate: (d) {},
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            }),
           ),
           Expanded(
             child: WindowMoveTarget(
