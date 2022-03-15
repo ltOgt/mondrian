@@ -2,42 +2,42 @@ import 'package:flutter/foundation.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
 
-enum WindowAxis {
+enum MondrianAxis {
   horizontal,
   vertical,
 }
 
-extension WindowAxisX on WindowAxis {
-  WindowAxis get previous => WindowAxis.values[(index - 1) % WindowAxis.values.length];
-  WindowAxis get next => WindowAxis.values[(index + 1) % WindowAxis.values.length];
+extension WindowAxisX on MondrianAxis {
+  MondrianAxis get previous => MondrianAxis.values[(index - 1) % MondrianAxis.values.length];
+  MondrianAxis get next => MondrianAxis.values[(index + 1) % MondrianAxis.values.length];
 
-  bool get isHorizontal => WindowAxis.horizontal == this;
-  bool get isVertical => WindowAxis.vertical == this;
+  bool get isHorizontal => MondrianAxis.horizontal == this;
+  bool get isVertical => MondrianAxis.vertical == this;
 }
 
 /// The index for each child that must be passed to reach the destination node.
-typedef WindowManagerTreePath = List<int>;
+typedef MondrianTreePath = List<int>;
 
-/// The tree of [WindowManagerNodeAbst]s specifying the partition of the window.
-class WindowManagerTree {
-  final WindowManagerNodeAbst rootNode;
-  final WindowAxis rootAxis;
+/// The tree of [MondrianNodeAbst]s specifying the partition of the window.
+class MondrianTree {
+  final MondrianNodeAbst rootNode;
+  final MondrianAxis rootAxis;
 
-  const WindowManagerTree({
+  const MondrianTree({
     required this.rootNode,
     required this.rootAxis,
   });
 
-  WindowManagerTree updatePath(WindowManagerTreePath path, NodeUpdater updateNode) {
-    if (rootNode is WindowManagerLeaf) {
-      final n = (rootNode as WindowManagerLeaf);
-      return WindowManagerTree(
+  MondrianTree updatePath(MondrianTreePath path, NodeUpdater updateNode) {
+    if (rootNode is MondrianTreeLeaf) {
+      final n = (rootNode as MondrianTreeLeaf);
+      return MondrianTree(
         rootNode: n.updatePath(path, updateNode),
         rootAxis: rootAxis,
       );
-    } else if (rootNode is WindowManagerBranch) {
-      final n = (rootNode as WindowManagerBranch);
-      return WindowManagerTree(
+    } else if (rootNode is MondrianTreeBranch) {
+      final n = (rootNode as MondrianTreeBranch);
+      return MondrianTree(
         rootNode: n.updatePath(path, updateNode),
         rootAxis: rootAxis,
       );
@@ -45,28 +45,28 @@ class WindowManagerTree {
     throw "Unknown type ${rootNode.runtimeType}";
   }
 
-  WindowManagerNodeAbst extractPath(WindowManagerTreePath path) {
-    if (rootNode is WindowManagerLeaf) {
+  MondrianNodeAbst extractPath(MondrianTreePath path) {
+    if (rootNode is MondrianTreeLeaf) {
       assert(path.isEmpty);
       return rootNode;
-    } else if (rootNode is WindowManagerBranch) {
-      return (rootNode as WindowManagerBranch).extractPath(path);
+    } else if (rootNode is MondrianTreeBranch) {
+      return (rootNode as MondrianTreeBranch).extractPath(path);
     }
     throw "Unknown type ${rootNode.runtimeType}";
   }
 
   // TODO consider adding a method "leafPathFromId(WindowLeafId)" that searches the tree recursively, while building a path and returning it on match
 
-  WindowManagerTree moveLeaf({
-    required WindowManagerTreePath sourcePath,
-    required WindowManagerTreePath targetPath,
-    required WindowMoveTargetDropPosition targetSide,
+  MondrianTree moveLeaf({
+    required MondrianTreePath sourcePath,
+    required MondrianTreePath targetPath,
+    required MondrianMoveTargetDropPosition targetSide,
   }) {
     var _tree = this;
     var _rootAxis = rootAxis;
 
     final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
-    final sourceNode = _tree.extractPath(sourcePath) as WindowManagerLeaf;
+    final sourceNode = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
 
     final targetPathToParent = targetPath.sublist(0, targetPath.length - 1);
     final targetChildIndex = targetPath.last;
@@ -85,11 +85,11 @@ class WindowManagerTree {
       /*
       // x) into tab group
       _tree = _tree.updatePath(targetPathToParent, (parent) {
-        (parent as WindowManagerBranch);
+        (parent as MondrianTreeBranch);
         final children = parent.children;
 
         // Must be a leaf, since can only drop onto leafs
-        final target = children[targetChildIndex] as WindowManagerLeaf;
+        final target = children[targetChildIndex] as MondrianTreeLeaf;
 
         if (parent.isTabbed) {
           // If the parent is already in tabbed mode => add to parents tab group
@@ -110,7 +110,7 @@ class WindowManagerTree {
               ]
           ];
 
-          return WindowManagerBranch(
+          return MondrianTreeBranch(
             fraction: parent.fraction,
             children: childrenWithNew,
             // make newly dropped child focused
@@ -121,18 +121,18 @@ class WindowManagerTree {
 
           // check if the source is already in the same parent, if so we can just quickly remove it here to skip the removal phase later
           int sourceInTargetsParent =
-              parent.children.indexWhere((e) => (e is WindowManagerLeaf && e.tabs == sourceNode.tabs));
+              parent.children.indexWhere((e) => (e is MondrianTreeLeaf && e.tabs == sourceNode.tabs));
           if (sourceInTargetsParent != -1) {
             // Means we dont have to do the removal step later
             isReorderInSameParent = true;
           }
           final sourceFractionIfRemoved = (isReorderInSameParent ? sourceNode.fraction : 0);
 
-          final childrenPotentiallyWithRemovedSource = <WindowManagerNodeAbst>[
+          final childrenPotentiallyWithRemovedSource = <MondrianTreeNodeAbst>[
             for (int i = 0; i < children.length; i++)
               if (i != sourceInTargetsParent) // skip source if present
                 if (i == targetChildIndex) ...[
-                  WindowManagerBranch(
+                  MondrianTreeBranch(
                     fraction: target.fraction + sourceFractionIfRemoved,
                     children: [
                       // TODO rename "update" to "copyWith"
@@ -148,7 +148,7 @@ class WindowManagerTree {
           ];
 
           // insert children back into parent
-          return WindowManagerBranch(
+          return MondrianTreeBranch(
             fraction: parent.fraction,
             children: childrenPotentiallyWithRemovedSource,
             tabFocusIndex: null,
@@ -165,12 +165,12 @@ class WindowManagerTree {
       if (bothSameAxis) {
         //      => insert into parent (Split fraction of previous child between prev and new)
         _tree = _tree.updatePath(targetPathToParent, (node) {
-          final branch = node as WindowManagerBranch;
-          final children = <WindowManagerNodeAbst>[];
+          final branch = node as MondrianTreeBranch;
+          final children = <MondrianNodeAbst>[];
 
           // cant just skip, since in this case we want to keep the same sizes
           int sourceInTargetsParent =
-              branch.children.indexWhere((e) => (e is WindowManagerLeaf && e.id == sourceNode.id));
+              branch.children.indexWhere((e) => (e is MondrianTreeLeaf && e.id == sourceNode.id));
           if (sourceInTargetsParent != -1) {
             isReorderInSameParent = true;
           }
@@ -224,7 +224,7 @@ class WindowManagerTree {
             }
           }
 
-          return WindowManagerBranch(
+          return MondrianTreeBranch(
             fraction: branch.fraction,
             children: children,
           );
@@ -233,9 +233,9 @@ class WindowManagerTree {
         //    -- other axis
         //      => replace child with branch and insert child and source there (both .5 fraction)
         _tree = _tree.updatePath(targetPath, (node) {
-          final leaf = node as WindowManagerLeaf;
+          final leaf = node as MondrianTreeLeaf;
 
-          return WindowManagerBranch(
+          return MondrianTreeBranch(
             fraction: leaf.fraction,
             children: [
               if (targetSide.isLeft || targetSide.isTop) ...[
@@ -257,24 +257,24 @@ class WindowManagerTree {
       if (sourcePathToParent.isEmpty) {
         _tree = _tree.updatePath(sourcePathToParent, (root) {
           // Parent is root node
-          (root as WindowManagerBranch);
-          assert(root.children.any((e) => e is WindowManagerLeaf && e.id == sourceNode.id));
+          (root as MondrianTreeBranch);
+          assert(root.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
 
           // ------------------------------------------------------------------------------------------------
           // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
           final removedFractionToDistribute = sourceNode.fraction / (root.children.length - 1);
 
           // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
-          // List<WindowManagerNodeAbst> rootChildrenWithoutSourceNode = [
+          // List<MondrianTreeNodeAbst> rootChildrenWithoutSourceNode = [
           //   for (final child in root.children) //
-          //     if (false == (child is WindowManagerLeaf && child.id == sourceNode.id)) //
+          //     if (false == (child is MondrianTreeLeaf && child.id == sourceNode.id)) //
           //       child.updateFraction(
           //         cutPrecision(child.fraction + removedFractionToDistribute),
           //       ),
           // ];
-          List<WindowManagerNodeAbst> rootChildrenWithoutSourceNode = [];
+          List<MondrianNodeAbst> rootChildrenWithoutSourceNode = [];
           for (final child in root.children) {
-            if (child is WindowManagerLeaf && child.id == sourceNode.id) {
+            if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
               // skip the source to remove it
               continue;
             }
@@ -296,7 +296,7 @@ class WindowManagerTree {
           // ------------------------------------------------------------------------------------------------
           // IF ROOT STILL HAS MULTIPLE CHILDREN => USE THOSE
           if (rootChildrenWithoutSourceNode.length > 1) {
-            return WindowManagerBranch(
+            return MondrianTreeBranch(
               fraction: root.fraction,
               children: rootChildrenWithoutSourceNode,
             );
@@ -310,16 +310,16 @@ class WindowManagerTree {
           _rootAxis = rootAxis.next;
 
           // IF THE ONLY CHILD IS A LEAF, USE ROOT FRACTION => DONE
-          if (onlyChild is WindowManagerLeaf) {
-            return WindowManagerLeaf(
+          if (onlyChild is MondrianTreeLeaf) {
+            return MondrianTreeLeaf(
               fraction: root.fraction,
               id: onlyChild.id,
             );
           }
 
           // IF THE ONLY CHILD IS A BRANCH, USE ROOT FRACTION => DONE
-          if (onlyChild is WindowManagerBranch) {
-            return WindowManagerBranch(
+          if (onlyChild is MondrianTreeBranch) {
+            return MondrianTreeBranch(
               fraction: root.fraction,
               children: onlyChild.children,
             );
@@ -331,25 +331,25 @@ class WindowManagerTree {
         final sourcePathToParentIndex = sourcePathToParent.last;
 
         _tree = _tree.updatePath(sourcePathToParentsParent, (parentsParent) {
-          (parentsParent as WindowManagerBranch);
-          final parent = parentsParent.children[sourcePathToParentIndex] as WindowManagerBranch;
-          assert(parent.children.any((e) => e is WindowManagerLeaf && e.id == sourceNode.id));
+          (parentsParent as MondrianTreeBranch);
+          final parent = parentsParent.children[sourcePathToParentIndex] as MondrianTreeBranch;
+          assert(parent.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
 
           // ------------------------------------------------------------------------------------------------
           // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
           final removedFractionToDistribute = sourceNode.fraction / (parent.children.length - 1);
 
           // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
-          // List<WindowManagerNodeAbst> parentChildrenWithoutSourceNode = [
+          // List<MondrianTreeNodeAbst> parentChildrenWithoutSourceNode = [
           //   for (final child in parent.children) //
-          //     if (false == (child is WindowManagerLeaf && child.id == sourceNode.id)) //
+          //     if (false == (child is MondrianTreeLeaf && child.id == sourceNode.id)) //
           //       child.updateFraction(
           //         cutPrecision(child.fraction + removedFractionToDistribute),
           //       ),
           // ];
-          List<WindowManagerNodeAbst> parentChildrenWithoutSourceNode = [];
+          List<MondrianNodeAbst> parentChildrenWithoutSourceNode = [];
           for (final child in parent.children) {
-            if (child is WindowManagerLeaf && child.id == sourceNode.id) {
+            if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
               // Skip source child
               continue;
             }
@@ -373,7 +373,7 @@ class WindowManagerTree {
           // IF PARENT STILL HAS MULTIPLE CHILDREN => USE THOSE
           if (parentChildrenWithoutSourceNode.length > 1) {
             // PARENT WITH NEW CHILDREN
-            final newParent = WindowManagerBranch(
+            final newParent = MondrianTreeBranch(
               fraction: parent.fraction,
               children: parentChildrenWithoutSourceNode,
             );
@@ -382,7 +382,7 @@ class WindowManagerTree {
             newParentInsideParentsParent[sourcePathToParentIndex] = newParent;
 
             // PARENTs PARENT (no change done here)
-            return WindowManagerBranch(
+            return MondrianTreeBranch(
               fraction: parentsParent.fraction,
               children: newParentInsideParentsParent,
             );
@@ -393,16 +393,16 @@ class WindowManagerTree {
           final onlyChild = parentChildrenWithoutSourceNode.first;
 
           // IF THE ONLY CHILD IS A LEAF, USE PARENT FRACTION => DONE
-          if (onlyChild is WindowManagerLeaf) {
+          if (onlyChild is MondrianTreeLeaf) {
             // replace parent with only child
-            final parentReplacement = WindowManagerLeaf(
+            final parentReplacement = MondrianTreeLeaf(
               id: onlyChild.id,
               fraction: parent.fraction,
             );
             final replacedParentInsideParentsParent = parentsParent.children;
             replacedParentInsideParentsParent[sourcePathToParentIndex] = parentReplacement;
 
-            return WindowManagerBranch(
+            return MondrianTreeBranch(
               fraction: parentsParent.fraction,
               children: replacedParentInsideParentsParent,
             );
@@ -411,7 +411,7 @@ class WindowManagerTree {
           // IF THE ONLY CHILD IS A BRANCH, REPLACE PARENT WITH THE CHILDREN OF THAT BRANCH
           // § Root(A,Row(B,C)) with C above B => Root(A,Row(Col(B,C))); SHOULD BE Root(A, B, C)
           // _ (Root == ParentParent, Row = Parent, Col(B,C) = Child)
-          if (onlyChild is WindowManagerBranch) {
+          if (onlyChild is MondrianTreeBranch) {
             // parent fraction will be split among childrens children based on their fraction inside of parents child
             final parentFractionToDistribute = parent.fraction;
 
@@ -436,7 +436,7 @@ class WindowManagerTree {
             }());
 
             // PARENTs PARENT (removed direct parent, as well as direct child)
-            return WindowManagerBranch(
+            return MondrianTreeBranch(
               fraction: parentsParent.fraction,
               children: childsChildrenInsteadOfParentInsideParentsParent,
             );
@@ -447,124 +447,165 @@ class WindowManagerTree {
       }
     }
 
-    return WindowManagerTree(
+    return MondrianTree(
       rootNode: _tree.rootNode,
       rootAxis: _rootAxis,
     );
   }
 
-  double _sumDistanceToOne(List<WindowManagerNodeAbst> list) =>
+  double _sumDistanceToOne(List<MondrianNodeAbst> list) =>
       (1.0 - list.fold<double>(0.0, (double acc, ele) => acc + ele.fraction)).abs();
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is WindowManagerTree && other.rootNode == rootNode;
+    return other is MondrianTree && other.rootNode == rootNode;
   }
 
   @override
   int get hashCode => rootNode.hashCode;
 
   @override
-  String toString() => 'WindowManagerTree(rootNode: $rootNode)';
+  String toString() => 'MondrianTreeTree(rootNode: $rootNode)';
 }
 
-typedef NodeUpdater = WindowManagerNodeAbst Function(WindowManagerNodeAbst node);
+typedef NodeUpdater = MondrianNodeAbst Function(MondrianNodeAbst node);
 
-/// A part of the [WindowManagerTree], either a [WindowManagerBranch] or a [WindowManagerLeaf].
-abstract class WindowManagerNodeAbst {
+/// A part of the [MondrianTree], either a [MondrianTreeBranch] or a [MondrianTreeLeaf].
+abstract class MondrianNodeAbst {
   /// The fraction of the parent slice taken up by this slice
   double get fraction;
 
-  const WindowManagerNodeAbst();
+  const MondrianNodeAbst();
 
-  WindowManagerNodeAbst updatePath(WindowManagerTreePath path, NodeUpdater updateNode);
+  MondrianNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode);
 
-  WindowManagerNodeAbst updateFraction(double newFraction);
+  MondrianNodeAbst updateFraction(double newFraction);
 }
 
-/// Id to identify a [WindowManagerLeaf]
-class WindowManagerLeafId {
+/// Id to identify a [MondrianTreeLeaf]
+class MondrianTreeLeafId {
   final String value;
-  const WindowManagerLeafId(this.value);
+  const MondrianTreeLeafId(this.value);
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is WindowManagerLeafId && other.value == value;
+    return other is MondrianTreeLeafId && other.value == value;
   }
 
   @override
   int get hashCode => value.hashCode;
 
   @override
-  String toString() => 'WindowManagerLeafId(value: $value)';
+  String toString() => 'MondrianTreeLeafId(value: $value)';
 }
 
 /// Lead in the tree, represents a single widget.
 ///
-/// Can be placed inside [WindowManagerBranch].
-class WindowManagerLeaf extends WindowManagerNodeAbst {
+/// Can be placed inside [MondrianTreeBranch].
+class MondrianTreeLeaf extends MondrianNodeAbst {
   @override
   final double fraction;
 
   /// The id representing this leaf.
   /// Used by [MondrianWM.resolveLeafToWidget] to resolve the widget representing this leaf.
-  final WindowManagerLeafId id;
+  final MondrianTreeLeafId id;
 
-  const WindowManagerLeaf({
+  const MondrianTreeLeaf({
     required this.id,
     required this.fraction,
   });
 
   @override
-  WindowManagerNodeAbst updatePath(WindowManagerTreePath path, NodeUpdater updateNode) {
+  MondrianNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode) {
     assert(path.isEmpty, "Arrived at leaf, but path is not yet empty: $path");
     return updateNode(this);
   }
 
   @override
-  WindowManagerNodeAbst updateFraction(double newFraction) => WindowManagerLeaf(id: id, fraction: newFraction);
+  MondrianNodeAbst updateFraction(double newFraction) => MondrianTreeLeaf(id: id, fraction: newFraction);
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is WindowManagerLeaf && other.fraction == fraction && other.id == id;
+    return other is MondrianTreeLeaf && other.fraction == fraction && other.id == id;
   }
 
   @override
   int get hashCode => fraction.hashCode ^ id.hashCode;
 
   @override
-  String toString() => 'WindowManagerLeaf(fraction: $fraction, id: $id)';
+  String toString() => 'MondrianTreeLeaf(fraction: $fraction, id: $id)';
 }
 
-/// Row or Column inside the [WindowManagerTree].
-/// Can contain [WindowManagerLeaf]s as well as further [WindowManagerTree]s.
+class MondrianTreeTabLeaf extends MondrianTreeLeaf {
+  final int activeTabIndex;
+  final List<MondrianTreeLeafId> tabs;
+
+  MondrianTreeTabLeaf._({
+    required MondrianTreeLeafId id,
+    required double fraction,
+    required this.tabs,
+    required this.activeTabIndex,
+  }) : super(id: id, fraction: fraction);
+
+  static final CircleIdGen _idGen = CircleIdGen();
+
+  factory MondrianTreeTabLeaf({
+    required double fraction,
+    required List<MondrianTreeTabLeafId> tabs,
+    required int activeTabIndex,
+  }) =>
+      MondrianTreeTabLeaf._(
+        id: MondrianTreeTabLeafId(_idGen.next.value),
+        fraction: fraction,
+        tabs: tabs,
+        activeTabIndex: activeTabIndex,
+      );
+
+  @override
+  MondrianNodeAbst updateFraction(double newFraction) {
+    return MondrianTreeTabLeaf._(
+      id: id,
+      fraction: newFraction,
+      tabs: tabs,
+      activeTabIndex: activeTabIndex,
+    );
+  }
+}
+
+// TODO extend WindowManagerLeafIdInternal instead once implemented
+class MondrianTreeTabLeafId extends MondrianTreeLeafId {
+  const MondrianTreeTabLeafId(String value) : super(value);
+}
+
+/// Row or Column inside the [MondrianTree].
+/// Can contain [MondrianTreeLeaf]s as well as further [MondrianTree]s.
 ///
-/// The axis direction of this branch depends on the [WindowManagerTree.initialAxis] and the depth of this branch.
+/// The axis direction of this branch depends on the [MondrianTree.initialAxis] and the depth of this branch.
 /// § Axis.horizontal => Row => Column => Row => ...
-class WindowManagerBranch extends WindowManagerNodeAbst {
+class MondrianTreeBranch extends MondrianNodeAbst {
   @override
   final double fraction;
 
   /// The children contained within this branch.
-  final List<WindowManagerNodeAbst> children;
+  final List<MondrianNodeAbst> children;
 
-  const WindowManagerBranch({
+  const MondrianTreeBranch({
     required this.fraction,
     required this.children,
   });
 
   @override
-  WindowManagerNodeAbst updatePath(WindowManagerTreePath path, NodeUpdater updateNode) {
+  MondrianNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode) {
     if (path.isEmpty) {
       return updateNode(this);
     }
-    return WindowManagerBranch(
+    return MondrianTreeBranch(
       fraction: fraction,
       children: [
         for (int i = 0; i < children.length; i++)
@@ -577,24 +618,23 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
     );
   }
 
-  WindowManagerNodeAbst extractPath(WindowManagerTreePath path) {
+  MondrianNodeAbst extractPath(MondrianTreePath path) {
     final child = children[path.first];
     final remainder = path.skip(1).toList();
 
-    if (child is WindowManagerLeaf) {
+    if (child is MondrianTreeLeaf) {
       assert(remainder.isEmpty);
       return child;
-    } else if (child is WindowManagerBranch) {
+    } else if (child is MondrianTreeBranch) {
       return child.extractPath(remainder);
     }
     throw "Unknown type ${child.runtimeType}";
   }
 
   @override
-  WindowManagerNodeAbst updateFraction(double newFraction) =>
-      WindowManagerBranch(children: children, fraction: newFraction);
+  MondrianNodeAbst updateFraction(double newFraction) => MondrianTreeBranch(children: children, fraction: newFraction);
 
-  WindowManagerBranch updateChildFraction({required int index, required double newFraction}) {
+  MondrianTreeBranch updateChildFraction({required int index, required double newFraction}) {
     final child1 = children[index];
     final child2 = children[index + 1];
 
@@ -607,7 +647,7 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
     final child1Updated = child1.updateFraction(newRounded);
     final child2Updated = child2.updateFraction(new2Rounded);
 
-    return WindowManagerBranch(
+    return MondrianTreeBranch(
       fraction: fraction,
       children: [
         for (int i = 0; i < children.length; i++)
@@ -626,12 +666,12 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is WindowManagerBranch && other.fraction == fraction && listEquals(other.children, children);
+    return other is MondrianTreeBranch && other.fraction == fraction && listEquals(other.children, children);
   }
 
   @override
   int get hashCode => fraction.hashCode ^ children.hashCode;
 
   @override
-  String toString() => 'WindowManagerBranch(fraction: $fraction, children: $children)';
+  String toString() => 'MondrianTreeBranch(fraction: $fraction, children: $children)';
 }

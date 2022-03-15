@@ -4,61 +4,61 @@ import 'package:mondrian/mondrian.dart';
 
 void main() {
   test('Update Tree', () {
-    const initialTree = WindowManagerTree(
-      rootNode: WindowManagerBranch(
+    const initialTree = MondrianTree(
+      rootNode: MondrianTreeBranch(
         fraction: 1,
         children: [
-          WindowManagerBranch(
+          MondrianTreeBranch(
             fraction: .7,
             children: [
-              WindowManagerLeaf(fraction: .7, id: WindowManagerLeafId("Big top left")),
-              WindowManagerBranch(
+              MondrianTreeLeaf(fraction: .7, id: MondrianTreeLeafId("Big top left")),
+              MondrianTreeBranch(
                 fraction: .3,
                 children: [
-                  WindowManagerLeaf(fraction: .6, id: WindowManagerLeafId("Medium Top Right")),
-                  WindowManagerLeaf(fraction: .6, id: WindowManagerLeafId("Small Mid Right")),
+                  MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Medium Top Right")),
+                  MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Small Mid Right")),
                 ],
               ),
             ],
           ),
-          WindowManagerBranch(
+          MondrianTreeBranch(
             fraction: .3,
             children: [
-              WindowManagerLeaf(fraction: .3, id: WindowManagerLeafId("Bottom Left")),
-              WindowManagerLeaf(fraction: .3, id: WindowManagerLeafId("Bottom Mid")),
-              WindowManagerLeaf(fraction: .4, id: WindowManagerLeafId("Bottom Right")),
+              MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Left")),
+              MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Mid")),
+              MondrianTreeLeaf(fraction: .4, id: MondrianTreeLeafId("Bottom Right")),
             ],
           )
         ],
       ),
     );
 
-    const expectedTreeAfterUpdate = WindowManagerTree(
-      rootNode: WindowManagerBranch(
+    const expectedTreeAfterUpdate = MondrianTree(
+      rootNode: MondrianTreeBranch(
         fraction: 1,
         children: [
-          WindowManagerBranch(
+          MondrianTreeBranch(
             fraction: .7,
             children: [
-              WindowManagerLeaf(fraction: .7, id: WindowManagerLeafId("Big top left")),
-              WindowManagerBranch(
+              MondrianTreeLeaf(fraction: .7, id: MondrianTreeLeafId("Big top left")),
+              MondrianTreeBranch(
                 fraction: .3,
                 children: [
-                  WindowManagerLeaf(fraction: .6, id: WindowManagerLeafId("Medium Top Right")),
-                  WindowManagerLeaf(fraction: .6, id: WindowManagerLeafId("Small Mid Right")),
+                  MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Medium Top Right")),
+                  MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Small Mid Right")),
                 ],
               ),
             ],
           ),
-          WindowManagerBranch(
+          MondrianTreeBranch(
             fraction: .3,
             children: [
-              WindowManagerLeaf(fraction: .3, id: WindowManagerLeafId("Bottom Left")),
-              WindowManagerLeaf(fraction: .3, id: WindowManagerLeafId("Bottom Mid")),
+              MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Left")),
+              MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Mid")),
               // ============================================================================== THIS IS NEW <
-              WindowManagerBranch(fraction: .4, children: [
-                WindowManagerLeaf(id: WindowManagerLeafId("Bottom Right"), fraction: 0.5),
-                WindowManagerLeaf(id: WindowManagerLeafId("Bottom Right"), fraction: 0.5)
+              MondrianTreeBranch(fraction: .4, children: [
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Bottom Right"), fraction: 0.5),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Bottom Right"), fraction: 0.5)
               ]),
               // ============================================================================== THIS IS NEW >
             ],
@@ -69,9 +69,9 @@ void main() {
 
     final actualTreeAfterUpdate = initialTree.updatePath(
         [1, 2],
-        (node) => WindowManagerBranch(fraction: node.fraction, children: [
-              WindowManagerLeaf(id: (node as WindowManagerLeaf).id, fraction: .5),
-              WindowManagerLeaf(id: (node as WindowManagerLeaf).id, fraction: .5)
+        (node) => MondrianTreeBranch(fraction: node.fraction, children: [
+              MondrianTreeLeaf(id: (node as MondrianTreeLeaf).id, fraction: .5),
+              MondrianTreeLeaf(id: (node as MondrianTreeLeaf).id, fraction: .5)
             ]));
 
     expect(expectedTreeAfterUpdate, equals(actualTreeAfterUpdate));

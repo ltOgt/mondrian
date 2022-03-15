@@ -14,12 +14,12 @@ class MondrianDebugSingleton {
   }
 }
 
-extension WindowAxisFlutterX on WindowAxis {
+extension WindowAxisFlutterX on MondrianAxis {
   Axis get asFlutterAxis {
     switch (this) {
-      case WindowAxis.horizontal:
+      case MondrianAxis.horizontal:
         return Axis.horizontal;
-      case WindowAxis.vertical:
+      case MondrianAxis.vertical:
         return Axis.vertical;
     }
   }
@@ -33,16 +33,16 @@ class MondrianMoveable extends StatefulWidget {
     required this.onResizeDone,
   }) : super(key: key);
 
-  final WindowManagerTree tree;
-  final void Function(WindowManagerTree tree) onResizeDone;
-  final void Function(WindowManagerTree tree) onMoveDone;
+  final MondrianTree tree;
+  final void Function(MondrianTree tree) onResizeDone;
+  final void Function(MondrianTree tree) onMoveDone;
 
   @override
   State<MondrianMoveable> createState() => MondrianMoveableState();
 }
 
 class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
-  WindowManagerLeafId? movingId;
+  MondrianTreeLeafId? movingId;
   List<int>? lastMovingPath;
 
   @override
@@ -52,7 +52,7 @@ class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
       initialAxis: widget.tree.rootAxis.asFlutterAxis,
       onResize: (pathToParent, newFraction, index) {
         final updatedTree = widget.tree.updatePath(pathToParent, (node) {
-          return (node as WindowManagerBranch).updateChildFraction(
+          return (node as MondrianTreeBranch).updateChildFraction(
             index: index,
             newFraction: newFraction,
           );
@@ -143,7 +143,7 @@ Column(
 )
 */
 
-typedef LeafResolver = Widget Function(WindowManagerLeafId, WindowManagerTreePath path, Axis axis);
+typedef LeafResolver = Widget Function(MondrianTreeLeafId, MondrianTreePath path, Axis axis);
 
 class MondrianWM extends StatelessWidget {
   const MondrianWM({
@@ -154,13 +154,13 @@ class MondrianWM extends StatelessWidget {
     required this.initialAxis,
   }) : super(key: key);
 
-  final WindowManagerTree tree;
+  final MondrianTree tree;
 
   /// Called when a the seperator between two nodes is used to resize the nodes next to it.
   /// The [pathToParent] points to the parent branch in which the children have been resized.
   /// The [index] points to the node before the seperator inside the list of children pointerd to by [pathToParent].
   /// The [newFraction] also points to the node before the seperator, the difference must be subtracted from the node after.
-  final void Function(WindowManagerTreePath pathToParent, double newFraction, int index) onResize;
+  final void Function(MondrianTreePath pathToParent, double newFraction, int index) onResize;
 
   /// Resolve leafs to the widgets representing them.
   final LeafResolver resolveLeafToWidget;
@@ -191,16 +191,16 @@ class _MondrianNode extends StatelessWidget {
     required this.path,
   }) : super(key: key);
 
-  final WindowManagerNodeAbst node;
+  final MondrianNodeAbst node;
   final Axis axis;
 
   /// See [MondrianWM.onResize]
-  final void Function(WindowManagerTreePath pathToParent, double newFraction, int index) onResize;
+  final void Function(MondrianTreePath pathToParent, double newFraction, int index) onResize;
 
   /// See [MondrianWM.resolveLeafToWidget]
   final LeafResolver resolveLeafToWidget;
 
-  final WindowManagerTreePath path;
+  final MondrianTreePath path;
 
   static const double _dragWidth = 2;
 
@@ -214,7 +214,7 @@ class _MondrianNode extends StatelessWidget {
     /// xtnd' = max * frac'
     /// frac' = xtnd' / max
 
-    final double oldFraction = (node as WindowManagerBranch).children[index].fraction;
+    final double oldFraction = (node as MondrianTreeBranch).children[index].fraction;
     final double oldExtend = maxExtendAxis * oldFraction;
     final double newExtend = (oldExtend + deltaAxis);
     final double newFraction = newExtend / maxExtendAxis;
@@ -222,7 +222,7 @@ class _MondrianNode extends StatelessWidget {
     // check minimum extend of this node and its neighbour
     if (newExtend < _minNodeExtend) return;
     // guaranteed to have a neighbour node, otherwise could not resize at this index
-    final neighbourFraction = (node as WindowManagerBranch).children[index + 1].fraction;
+    final neighbourFraction = (node as MondrianTreeBranch).children[index + 1].fraction;
     final newNeighbourFraction = neighbourFraction + (oldFraction - newFraction);
     final newNeighbourExtend = maxExtendAxis * newNeighbourFraction;
     if (newNeighbourExtend < _minNodeExtend) return;
@@ -232,12 +232,12 @@ class _MondrianNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (node is WindowManagerLeaf) {
-      return resolveLeafToWidget((node as WindowManagerLeaf).id, path, axis.previous);
+    if (node is MondrianTreeLeaf) {
+      return resolveLeafToWidget((node as MondrianTreeLeaf).id, path, axis.previous);
     }
     final nextAxis = axis.next;
 
-    final children = (node as WindowManagerBranch).children;
+    final children = (node as MondrianTreeBranch).children;
     final childrenLength = children.length;
     final lastIndex = childrenLength - 1;
 

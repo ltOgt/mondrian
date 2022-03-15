@@ -89,7 +89,7 @@ class _WindowMoveHandleState extends State<WindowMoveHandle> {
   }
 }
 
-enum WindowMoveTargetDropPosition {
+enum MondrianMoveTargetDropPosition {
   top,
   left,
   center,
@@ -97,12 +97,12 @@ enum WindowMoveTargetDropPosition {
   bottom,
 }
 
-extension WindowMoveTargetDropPositionX on WindowMoveTargetDropPosition {
-  bool get isTop => this == WindowMoveTargetDropPosition.top;
-  bool get isLeft => this == WindowMoveTargetDropPosition.left;
-  bool get isCenter => this == WindowMoveTargetDropPosition.center;
-  bool get isRight => this == WindowMoveTargetDropPosition.right;
-  bool get isBottom => this == WindowMoveTargetDropPosition.bottom;
+extension WindowMoveTargetDropPositionX on MondrianMoveTargetDropPosition {
+  bool get isTop => this == MondrianMoveTargetDropPosition.top;
+  bool get isLeft => this == MondrianMoveTargetDropPosition.left;
+  bool get isCenter => this == MondrianMoveTargetDropPosition.center;
+  bool get isRight => this == MondrianMoveTargetDropPosition.right;
+  bool get isBottom => this == MondrianMoveTargetDropPosition.bottom;
 }
 
 class WindowMoveTargetMetaData {
@@ -130,12 +130,12 @@ class WindowMoveTarget extends StatelessWidget {
   static const _targetSmall = 20.0;
   static const _targetGap = SizedBox.square(dimension: 5.0);
 
-  final Function(WindowMoveTargetDropPosition position) onDrop;
+  final Function(MondrianMoveTargetDropPosition position) onDrop;
 
   Widget _target({
     required double width,
     required double height,
-    required WindowMoveTargetDropPosition position,
+    required MondrianMoveTargetDropPosition position,
   }) =>
       MetaData(
         metaData: WindowMoveTargetMetaData(
@@ -165,7 +165,7 @@ class WindowMoveTarget extends StatelessWidget {
                   children: [
                     // TOP
                     _target(
-                      position: WindowMoveTargetDropPosition.top,
+                      position: MondrianMoveTargetDropPosition.top,
                       width: _targetLarge,
                       height: _targetSmall,
                     ),
@@ -176,21 +176,21 @@ class WindowMoveTarget extends StatelessWidget {
                       children: [
                         // LEFT
                         _target(
-                          position: WindowMoveTargetDropPosition.left,
+                          position: MondrianMoveTargetDropPosition.left,
                           width: _targetSmall,
                           height: _targetLarge,
                         ),
                         _targetGap,
                         // CENTER
                         _target(
-                          position: WindowMoveTargetDropPosition.center,
+                          position: MondrianMoveTargetDropPosition.center,
                           width: _targetLarge,
                           height: _targetLarge,
                         ),
                         _targetGap,
                         // RIGHT
                         _target(
-                          position: WindowMoveTargetDropPosition.right,
+                          position: MondrianMoveTargetDropPosition.right,
                           width: _targetSmall,
                           height: _targetLarge,
                         ),
@@ -199,7 +199,7 @@ class WindowMoveTarget extends StatelessWidget {
                     _targetGap,
                     // BOTTOM
                     _target(
-                      position: WindowMoveTargetDropPosition.bottom,
+                      position: MondrianMoveTargetDropPosition.bottom,
                       width: _targetLarge,
                       height: _targetSmall,
                     ),

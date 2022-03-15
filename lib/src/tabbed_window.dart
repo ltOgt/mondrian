@@ -162,6 +162,13 @@ this would not be serialized, and there is no need for it to be stable across tw
   }
 }
 
+This way we dont need a public/private tree for the tab group at least.
+in the resolve call we can also still switch over the id subtype.
+moving the entire tab should now be free as well (since its just a leaf)
+
+moving a tab out still requires a special case for the removal
+moving a tab in still requires a special case for the pos.center (dropping on the tab bar can also just trigger the same call with pos.center)
+
 
 
 
@@ -172,54 +179,13 @@ import 'package:flutter/widgets.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
 
-class MondrianTab extends WindowManagerLeaf {
-  final int activeTabIndex;
-  final List<WindowManagerLeafId> tabs;
-
-  MondrianTab._({
-    required WindowManagerLeafId id,
-    required double fraction,
-    required this.tabs,
-    required this.activeTabIndex,
-  }) : super(id: id, fraction: fraction);
-
-  static final CircleIdGen _idGen = CircleIdGen();
-
-  factory MondrianTab({
-    required double fraction,
-    required List<WindowManagerTabLeafId> tabs,
-    required int activeTabIndex,
-  }) =>
-      MondrianTab._(
-        id: WindowManagerTabLeafId(_idGen.next.value),
-        fraction: fraction,
-        tabs: tabs,
-        activeTabIndex: activeTabIndex,
-      );
-
-  @override
-  WindowManagerNodeAbst updateFraction(double newFraction) {
-    return MondrianTab._(
-      id: id,
-      fraction: newFraction,
-      tabs: tabs,
-      activeTabIndex: activeTabIndex,
-    );
-  }
-}
-
-// TODO extend WindowManagerLeafIdInternal instead once implemented
-class WindowManagerTabLeafId extends WindowManagerLeafId {
-  const WindowManagerTabLeafId(String value) : super(value);
-}
-
-/// A container for [WindowManagerLeafId]s which can be placed as its own [WindowManagerLeaf] insides [WindowManagerTree]
+/// A container for [MondrianTreeLeafId]s which can be placed as its own [MondrianTreeLeaf] insides [MondrianTree]
 class TabbedWindow {
-  final WindowManagerTabLeafId id;
-  final List<WindowManagerLeafId> tabs;
+  final MondrianTreeTabLeafId id;
+  final List<MondrianTreeLeafId> tabs;
   final int activeTabIndex;
 
-  WindowManagerLeafId get activeTab => tabs[activeTabIndex];
+  MondrianTreeLeafId get activeTab => tabs[activeTabIndex];
 
   const TabbedWindow({
     required this.id,
@@ -231,9 +197,9 @@ class TabbedWindow {
 class MondrianWithTabs extends MondrianMoveable {
   const MondrianWithTabs({
     Key? key,
-    required WindowManagerTree tree,
-    required void Function(WindowManagerTree tree) onResizeDone,
-    required void Function(WindowManagerTree tree) onMoveDone,
+    required MondrianTree tree,
+    required void Function(MondrianTree tree) onResizeDone,
+    required void Function(MondrianTree tree) onMoveDone,
     required this.onTabSwitch,
     required this.tabs,
   }) : super(
@@ -246,7 +212,7 @@ class MondrianWithTabs extends MondrianMoveable {
   final void Function(TabbedWindow tabContainer) onTabSwitch;
 
   // TODO would be nice to expose a single tree that contains the tabs as well... would need to duplicate all regular tree objects and parse that combined tree into the internal non-tab tree as well as a internal tab map
-  final Map<WindowManagerTabLeafId, TabbedWindow> tabs;
+  final Map<MondrianTreeTabLeafId, TabbedWindow> tabs;
 
   @override
   State<MondrianWithTabs> createState() => _MondrianWithTabsState();
@@ -255,7 +221,7 @@ class MondrianWithTabs extends MondrianMoveable {
 class _MondrianWithTabsState<M extends MondrianWithTabs> extends MondrianMoveableState<M> {
   @override
   Widget resolveLeaf(leafId, leafPath, leafAxis) {
-    if (leafId is WindowManagerTabLeafId) {
+    if (leafId is MondrianTreeTabLeafId) {
       final tabWindow = widget.tabs[leafId]!;
 
       return Column(
