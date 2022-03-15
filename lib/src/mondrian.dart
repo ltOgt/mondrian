@@ -25,8 +25,8 @@ extension WindowAxisFlutterX on MondrianAxis {
   }
 }
 
-class MondrianMoveable extends StatefulWidget {
-  const MondrianMoveable({
+class MondrianWidget extends StatefulWidget {
+  const MondrianWidget({
     Key? key,
     required this.tree,
     required this.onMoveDone,
@@ -38,16 +38,16 @@ class MondrianMoveable extends StatefulWidget {
   final void Function(MondrianTree tree) onMoveDone;
 
   @override
-  State<MondrianMoveable> createState() => MondrianMoveableState();
+  State<MondrianWidget> createState() => MondrianWidgetState();
 }
 
-class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
+class MondrianWidgetState<M extends MondrianWidget> extends State<M> {
   MondrianTreeLeafId? movingId;
   List<int>? lastMovingPath;
 
   @override
   Widget build(BuildContext context) {
-    return MondrianWM(
+    return _MondrianLayoutAndResize(
       tree: widget.tree,
       initialAxis: widget.tree.rootAxis.asFlutterAxis,
       onResize: (pathToParent, newFraction, index) {
@@ -63,7 +63,117 @@ class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
     );
   }
 
-  Widget resolveLeaf(leafId, leafPath, leafAxis) {
+  // TODO might want to change Axis to MondrianAxis instead (can still convert to flutter axis as needed, just feels cleaner)
+  Widget resolveLeaf(MondrianTreeLeaf leaf, MondrianTreePath leafPath, Axis leafAxis) {
+    if (leaf is MondrianTreeTabLeaf) {
+      final tabLeaf = leaf;
+      return Column(
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Tab header
+          // TODO must be scrollable if to long
+          SizedBox(
+            height: 20,
+            child: Row(
+              children: [
+                for (int i = 0; i < tabLeaf.tabs.length; i++) ...[
+                  WindowMoveHandle(
+                    dragIndicator: Container(
+                      height: 100,
+                      width: 100,
+                      color: Colors.white.withAlpha(100),
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        // TODO consider adding a new method for onTabSwitch or joining move and resize to onTreeChanged
+                        widget.onMoveDone(
+                          widget.tree.updatePath(leafPath, (_tabLeaf) {
+                            _tabLeaf as MondrianTreeTabLeaf;
+                            return _tabLeaf.copyWith(activeTabIndex: i);
+                          }),
+                        );
+                      },
+                      child: Container(
+                        height: 20,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blueAccent),
+                          color: (i == tabLeaf.activeTabIndex) ? Colors.grey : Colors.black,
+                        ),
+                        child: AutoSizeText(text: tabLeaf.tabs[i].value),
+                      ),
+                    ),
+                    onMoveEnd: () {
+                      movingId = null;
+                      setState(() {});
+                    },
+                    onMoveStart: () {
+                      movingId = tabLeaf.tabs[i];
+                      lastMovingPath = [...leafPath, i]; // ADD TAB INDEX TO PATH
+                      setState(() {});
+                    },
+                    onMoveUpdate: (d) {},
+                  ),
+                ],
+                // Complete lead with all tabs
+                Expanded(
+                  child: WindowMoveHandle(
+                    dragIndicator: Container(
+                      height: 100,
+                      width: 100,
+                      color: Colors.white.withAlpha(100),
+                    ),
+                    child: Container(
+                      height: 20,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blueAccent),
+                        color: Colors.black,
+                      ),
+                    ),
+                    onMoveEnd: () {
+                      movingId = null;
+                      setState(() {});
+                    },
+                    onMoveStart: () {
+                      movingId = tabLeaf.id;
+                      lastMovingPath = [...leafPath]; // ADD TAB INDEX TO PATH
+                      setState(() {});
+                    },
+                    onMoveUpdate: (d) {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: WindowMoveTarget(
+              onDrop: (pos) {
+                // TODO adjust source tab and potential destination tab
+                // TODO also listen for pos == center
+                // widget.onMoveDone(
+                //   widget.tree.moveLeaf(
+                //     sourcePath: lastMovingPath!,
+                //     targetPath: leafPath,
+                //     targetSide: pos,
+                //   ),
+                // );
+              },
+              isActive: movingId != null && movingId != leaf.id && !tabLeaf.tabs.contains(movingId),
+              target: Container(
+                color: Colors.red,
+              ),
+              child: Center(
+                child: AutoSizeText(
+                  text: tabLeaf.activeTab.value,
+                ), // + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}"),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,7 +193,7 @@ class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
             setState(() {});
           },
           onMoveStart: () {
-            movingId = leafId;
+            movingId = leaf.id;
             lastMovingPath = leafPath;
             setState(() {});
           },
@@ -100,13 +210,13 @@ class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
                 ),
               );
             },
-            isActive: movingId != null && movingId != leafId,
+            isActive: movingId != null && movingId != leaf.id,
             target: Container(
               color: Colors.red,
             ),
             child: Center(
               child:
-                  AutoSizeText(text: leafId.value), // + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}"),
+                  AutoSizeText(text: leaf.id.value), // + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}"),
             ),
           ),
         ),
@@ -143,10 +253,10 @@ Column(
 )
 */
 
-typedef LeafResolver = Widget Function(MondrianTreeLeafId, MondrianTreePath path, Axis axis);
+typedef LeafResolver = Widget Function(MondrianTreeLeaf leafNode, MondrianTreePath path, Axis axis);
 
-class MondrianWM extends StatelessWidget {
-  const MondrianWM({
+class _MondrianLayoutAndResize extends StatelessWidget {
+  const _MondrianLayoutAndResize({
     Key? key,
     required this.tree,
     required this.onResize,
@@ -194,10 +304,10 @@ class _MondrianNode extends StatelessWidget {
   final MondrianNodeAbst node;
   final Axis axis;
 
-  /// See [MondrianWM.onResize]
+  /// See [_MondrianLayoutAndResize.onResize]
   final void Function(MondrianTreePath pathToParent, double newFraction, int index) onResize;
 
-  /// See [MondrianWM.resolveLeafToWidget]
+  /// See [_MondrianLayoutAndResize.resolveLeafToWidget]
   final LeafResolver resolveLeafToWidget;
 
   final MondrianTreePath path;
@@ -233,7 +343,8 @@ class _MondrianNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (node is MondrianTreeLeaf) {
-      return resolveLeafToWidget((node as MondrianTreeLeaf).id, path, axis.previous);
+      // Either an actual leaf or a tab group
+      return resolveLeafToWidget(node as MondrianTreeLeaf, path, axis.previous);
     }
     final nextAxis = axis.next;
 

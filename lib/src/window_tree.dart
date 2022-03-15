@@ -511,7 +511,7 @@ class MondrianTreeLeaf extends MondrianNodeAbst {
   final double fraction;
 
   /// The id representing this leaf.
-  /// Used by [MondrianWM.resolveLeafToWidget] to resolve the widget representing this leaf.
+  /// Used by [_MondrianLayoutAndResize.resolveLeafToWidget] to resolve the widget representing this leaf.
   final MondrianTreeLeafId id;
 
   const MondrianTreeLeaf({
@@ -546,7 +546,9 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
   final int activeTabIndex;
   final List<MondrianTreeLeafId> tabs;
 
-  MondrianTreeTabLeaf._({
+  MondrianTreeLeafId get activeTab => tabs[activeTabIndex];
+
+  const MondrianTreeTabLeaf._({
     required MondrianTreeLeafId id,
     required double fraction,
     required this.tabs,
@@ -557,7 +559,7 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
 
   factory MondrianTreeTabLeaf({
     required double fraction,
-    required List<MondrianTreeTabLeafId> tabs,
+    required List<MondrianTreeLeafId> tabs,
     required int activeTabIndex,
   }) =>
       MondrianTreeTabLeaf._(
@@ -576,6 +578,18 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
       activeTabIndex: activeTabIndex,
     );
   }
+
+  MondrianTreeTabLeaf copyWith({
+    double? fraction,
+    List<MondrianTreeLeafId>? tabs,
+    int? activeTabIndex,
+  }) =>
+      MondrianTreeTabLeaf._(
+        id: id,
+        fraction: fraction ?? this.fraction,
+        tabs: tabs ?? this.tabs,
+        activeTabIndex: activeTabIndex ?? this.activeTabIndex,
+      );
 }
 
 // TODO extend WindowManagerLeafIdInternal instead once implemented

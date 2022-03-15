@@ -35,13 +35,7 @@ class _MyAppState extends State<MyApp> {
           onPressed: toggleDebugPaint,
           child: const Icon(Icons.brush),
         ),
-        body: MondrianWithTabs(
-          tabs: tabs,
-          onTabSwitch: (t) {
-            setState(() {
-              tabs[t.id] = t;
-            });
-          },
+        body: MondrianWidget(
           tree: tree,
           onMoveDone: (tree) {
             setState(() {
@@ -70,7 +64,7 @@ final k_tabs = <MondrianTreeTabLeafId, TabbedWindow>{
     activeTabIndex: 0,
   ),
 };
-const k_tree = MondrianTree(
+final k_tree = MondrianTree(
   rootAxis: MondrianAxis.vertical,
   rootNode: MondrianTreeBranch(
     fraction: 1,
@@ -78,12 +72,16 @@ const k_tree = MondrianTree(
       MondrianTreeBranch(
         fraction: .7,
         children: [
-          MondrianTreeLeaf(
+          MondrianTreeTabLeaf(
             fraction: .7,
-            //id: WindowManagerLeafId("Big top left"),
-            id: MondrianTreeTabLeafId("Tab Group 1"),
+            tabs: const [
+              MondrianTreeLeafId("Tab Child 1"),
+              MondrianTreeLeafId("Tab Child 2"),
+              MondrianTreeLeafId("Tab Child 3"),
+            ],
+            activeTabIndex: 0,
           ),
-          MondrianTreeBranch(
+          const MondrianTreeBranch(
             fraction: .3,
             children: [
               MondrianTreeLeaf(
@@ -98,7 +96,7 @@ const k_tree = MondrianTree(
           ),
         ],
       ),
-      MondrianTreeBranch(
+      const MondrianTreeBranch(
         fraction: .3,
         children: [
           MondrianTreeLeaf(

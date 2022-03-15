@@ -194,7 +194,7 @@ class TabbedWindow {
   });
 }
 
-class MondrianWithTabs extends MondrianMoveable {
+class MondrianWithTabs extends MondrianWidget {
   const MondrianWithTabs({
     Key? key,
     required MondrianTree tree,
@@ -218,7 +218,7 @@ class MondrianWithTabs extends MondrianMoveable {
   State<MondrianWithTabs> createState() => _MondrianWithTabsState();
 }
 
-class _MondrianWithTabsState<M extends MondrianWithTabs> extends MondrianMoveableState<M> {
+class _MondrianWithTabsState<M extends MondrianWithTabs> extends MondrianWidgetState<M> {
   @override
   Widget resolveLeaf(leafId, leafPath, leafAxis) {
     if (leafId is MondrianTreeTabLeafId) {
