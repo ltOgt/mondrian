@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
 
 enum WindowAxis {
@@ -73,100 +74,181 @@ class WindowManagerTree {
 
     bool isReorderInSameParent = false;
 
-    if (targetSide.isCenter) throw UnimplementedError("TODO Need to implement tabbing"); // TODO __________
+    // 1) insert
+    // TODO: when splitting a targets fraction with the newly added source, we still need to ensure that the fractions dont get too small
+    // TODO: actually, checking for minumum size in mondrian does not make much sense, need to check for minimum fraction instead
+    // TODO: depending on the min fraction, this also imposes a limit on how many children a branch can have
 
     // 1) insert
-    //  a) _
-    //    -- same axis
-    bool bothHorizontal = (targetSide.isLeft || targetSide.isRight) && targetAxis.isHorizontal;
-    bool bothVertical = (targetSide.isTop || targetSide.isBottom) && targetAxis.isVertical;
-    bool bothSameAxis = bothHorizontal || bothVertical;
-    if (bothSameAxis) {
-      //      => insert into parent (Split fraction of previous child between prev and new)
-      _tree = _tree.updatePath(targetPathToParent, (node) {
-        final branch = node as WindowManagerBranch;
-        final children = <WindowManagerNodeAbst>[];
+    if (targetSide.isCenter) {
+      throw UnimplementedError();
+      /*
+      // x) into tab group
+      _tree = _tree.updatePath(targetPathToParent, (parent) {
+        (parent as WindowManagerBranch);
+        final children = parent.children;
 
-        // cant just skip, since in this case we want to keep the same sizes
-        int sourceInTargetsParent =
-            branch.children.indexWhere((e) => (e is WindowManagerLeaf && e.id == sourceNode.id));
-        if (sourceInTargetsParent != -1) {
-          isReorderInSameParent = true;
-        }
+        // Must be a leaf, since can only drop onto leafs
+        final target = children[targetChildIndex] as WindowManagerLeaf;
 
-        for (int i = 0; i < branch.children.length; i++) {
-          final targetChild = branch.children[i];
+        if (parent.isTabbed) {
+          // If the parent is already in tabbed mode => add to parents tab group
 
-          // Skip if the sourceNode is already present in the targets parent (i.e. reorder inside of parent)
-          if (i == sourceInTargetsParent) {
-            continue;
+          // NOTE: it is guaranteed that the source can not already be in the same parent:
+          // moving the source will mean that the tab group does not get the drop overlay (only the tab reorder overlay)
+          // // TODO make sure of this, ALSO need to change focus to the moving tab if it is moved without already having focus
+
+          // TODO Splitting the targets fraction with the source might not be a good idea:
+          // _ the diminishing fraction is not visible while in tab mode, if multiple sources are dropped onto the same target over and over again, it will shrink and shirnk
+          final childrenWithNew = [
+            for (final child in children)
+              if (child == target) ...[
+                target.updateFraction(target.fraction * 0.5),
+                sourceNode.updateFraction(target.fraction * 0.5),
+              ] else ...[
+                child,
+              ]
+          ];
+
+          return WindowManagerBranch(
+            fraction: parent.fraction,
+            children: childrenWithNew,
+            // make newly dropped child focused
+            tabFocusIndex: targetChildIndex + 1,
+          );
+        } else {
+          // If Parent is not already tabbed => replace target leaf with a new branch in tabbed mode.
+
+          // check if the source is already in the same parent, if so we can just quickly remove it here to skip the removal phase later
+          int sourceInTargetsParent =
+              parent.children.indexWhere((e) => (e is WindowManagerLeaf && e.tabs == sourceNode.tabs));
+          if (sourceInTargetsParent != -1) {
+            // Means we dont have to do the removal step later
+            isReorderInSameParent = true;
           }
+          final sourceFractionIfRemoved = (isReorderInSameParent ? sourceNode.fraction : 0);
 
-          if (i == targetChildIndex) {
-            // on reorder in same parent we want to keep the same sizes, otherwise we split the size of the target between the two
-            final newTargetFraction =
-                isReorderInSameParent ? targetChild.fraction : cutPrecision(targetChild.fraction * 0.5);
-            final newSourceFraction =
-                isReorderInSameParent ? sourceNode.fraction : cutPrecision(targetChild.fraction * 0.5);
+          final childrenPotentiallyWithRemovedSource = <WindowManagerNodeAbst>[
+            for (int i = 0; i < children.length; i++)
+              if (i != sourceInTargetsParent) // skip source if present
+                if (i == targetChildIndex) ...[
+                  WindowManagerBranch(
+                    fraction: target.fraction + sourceFractionIfRemoved,
+                    children: [
+                      // TODO rename "update" to "copyWith"
+                      target.updateFraction(.5),
+                      sourceNode.updateFraction(.5),
+                    ],
+                    // make newly dropped child focused
+                    tabFocusIndex: 1,
+                  )
+                ] else ...[
+                  children[i],
+                ]
+          ];
 
-            if (targetSide.isLeft || targetSide.isTop) {
-              children.add(sourceNode.updateFraction(newSourceFraction));
-            }
-            children.add(targetChild.updateFraction(newTargetFraction));
-
-            if (targetSide.isRight || targetSide.isBottom) {
-              children.add(sourceNode.updateFraction(newSourceFraction));
-            }
-          } else {
-            children.add(branch.children[i]);
-          }
+          // insert children back into parent
+          return WindowManagerBranch(
+            fraction: parent.fraction,
+            children: childrenPotentiallyWithRemovedSource,
+            tabFocusIndex: null,
+          );
         }
-
-        // § source [0,1,0] with target [0,0] on same axis
-        // _ => will result in target parent (0,1) => (0,1,2)
-        // _ _ -- insert before
-        // _ _ _ => target is now at [0,1]
-        // _ _ _ => source is now at [0,0]
-        // _ _ _ => source old parent is now at [0,2] instead of [0,1]
-        // _ _ -- insert after
-        // _ _ _ => target is now at [0,0]
-        // _ _ _ => source is now at [0,1]
-        // _ _ _ => source old parent is now at [0,2] instead of [0,1]
-        // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
-        if (sourcePathToParent.length > targetPathToParent.length) {
-          final potentiallySharedParentPath = sourcePathToParent.sublist(0, targetPathToParent.length);
-          if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
-            // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
-            if (sourcePath[targetPath.length - 1] > targetPath.last) {
-              sourcePathToParent[targetPath.length - 1] += 1;
-            }
-          }
-        }
-
-        return WindowManagerBranch(
-          fraction: branch.fraction,
-          children: children,
-        );
       });
+      */
     } else {
-      //    -- other axis
-      //      => replace child with branch and insert child and source there (both .5 fraction)
-      _tree = _tree.updatePath(targetPath, (node) {
-        final leaf = node as WindowManagerLeaf;
+      //  a) _
+      //    -- same axis
+      bool bothHorizontal = (targetSide.isLeft || targetSide.isRight) && targetAxis.isHorizontal;
+      bool bothVertical = (targetSide.isTop || targetSide.isBottom) && targetAxis.isVertical;
+      bool bothSameAxis = bothHorizontal || bothVertical;
+      if (bothSameAxis) {
+        //      => insert into parent (Split fraction of previous child between prev and new)
+        _tree = _tree.updatePath(targetPathToParent, (node) {
+          final branch = node as WindowManagerBranch;
+          final children = <WindowManagerNodeAbst>[];
 
-        return WindowManagerBranch(
-          fraction: leaf.fraction,
-          children: [
-            if (targetSide.isLeft || targetSide.isTop) ...[
-              sourceNode.updateFraction(0.5),
+          // cant just skip, since in this case we want to keep the same sizes
+          int sourceInTargetsParent =
+              branch.children.indexWhere((e) => (e is WindowManagerLeaf && e.id == sourceNode.id));
+          if (sourceInTargetsParent != -1) {
+            isReorderInSameParent = true;
+          }
+
+          for (int i = 0; i < branch.children.length; i++) {
+            final targetChild = branch.children[i];
+
+            // Skip if the sourceNode is already present in the targets parent (i.e. reorder inside of parent)
+            if (i == sourceInTargetsParent) {
+              continue;
+            }
+
+            if (i == targetChildIndex) {
+              // on reorder in same parent we want to keep the same sizes, otherwise we split the size of the target between the two
+              final newTargetFraction =
+                  isReorderInSameParent ? targetChild.fraction : cutPrecision(targetChild.fraction * 0.5);
+              final newSourceFraction =
+                  isReorderInSameParent ? sourceNode.fraction : cutPrecision(targetChild.fraction * 0.5);
+
+              if (targetSide.isLeft || targetSide.isTop) {
+                children.add(sourceNode.updateFraction(newSourceFraction));
+              }
+              children.add(targetChild.updateFraction(newTargetFraction));
+
+              if (targetSide.isRight || targetSide.isBottom) {
+                children.add(sourceNode.updateFraction(newSourceFraction));
+              }
+            } else {
+              children.add(branch.children[i]);
+            }
+          }
+
+          // § source [0,1,0] with target [0,0] on same axis
+          // _ => will result in target parent (0,1) => (0,1,2)
+          // _ _ -- insert before
+          // _ _ _ => target is now at [0,1]
+          // _ _ _ => source is now at [0,0]
+          // _ _ _ => source old parent is now at [0,2] instead of [0,1]
+          // _ _ -- insert after
+          // _ _ _ => target is now at [0,0]
+          // _ _ _ => source is now at [0,1]
+          // _ _ _ => source old parent is now at [0,2] instead of [0,1]
+          // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
+          if (sourcePathToParent.length > targetPathToParent.length) {
+            final potentiallySharedParentPath = sourcePathToParent.sublist(0, targetPathToParent.length);
+            if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
+              // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
+              if (sourcePath[targetPath.length - 1] > targetPath.last) {
+                sourcePathToParent[targetPath.length - 1] += 1;
+              }
+            }
+          }
+
+          return WindowManagerBranch(
+            fraction: branch.fraction,
+            children: children,
+          );
+        });
+      } else {
+        //    -- other axis
+        //      => replace child with branch and insert child and source there (both .5 fraction)
+        _tree = _tree.updatePath(targetPath, (node) {
+          final leaf = node as WindowManagerLeaf;
+
+          return WindowManagerBranch(
+            fraction: leaf.fraction,
+            children: [
+              if (targetSide.isLeft || targetSide.isTop) ...[
+                sourceNode.updateFraction(0.5),
+              ],
+              leaf.updateFraction(0.5),
+              if (targetSide.isRight || targetSide.isBottom) ...[
+                sourceNode.updateFraction(0.5),
+              ],
             ],
-            leaf.updateFraction(0.5),
-            if (targetSide.isRight || targetSide.isBottom) ...[
-              sourceNode.updateFraction(0.5),
-            ],
-          ],
-        );
-      });
+          );
+        });
+      }
     }
 
     if (!isReorderInSameParent) {
@@ -421,6 +503,9 @@ class WindowManagerLeafId {
   String toString() => 'WindowManagerLeafId(value: $value)';
 }
 
+/// Lead in the tree, represents a single widget.
+///
+/// Can be placed inside [WindowManagerBranch].
 class WindowManagerLeaf extends WindowManagerNodeAbst {
   @override
   final double fraction;
@@ -458,6 +543,7 @@ class WindowManagerLeaf extends WindowManagerNodeAbst {
 }
 
 /// Row or Column inside the [WindowManagerTree].
+/// Can contain [WindowManagerLeaf]s as well as further [WindowManagerTree]s.
 ///
 /// The axis direction of this branch depends on the [WindowManagerTree.initialAxis] and the depth of this branch.
 /// § Axis.horizontal => Row => Column => Row => ...

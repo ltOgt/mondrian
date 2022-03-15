@@ -1,5 +1,3 @@
-class TabbedWindow {}
-
 //TODO maybe good idea to have top level lookup of Map<LeafId, TreePath> that has to be updated on moves
 // + quick resolve if needed (no search necessary)
 // - need to keep consistent, and probably build once on start up (small negative though)
@@ -20,7 +18,6 @@ class TabbedWindow {}
 // _ _ _ : resolve back from internal to public to get the actual widget representing the object
 // ** skipping this for now while implementing tabs, will come back to this after that
 
-
 // Decided to not implement tabs in the core of mondrian, but instead use a normal leaf and bolt tabs into it
 // this keeps the complexity in the core of the movement stuff simpler
 //
@@ -36,7 +33,7 @@ class TabbedWindow {}
 // _ -- special leaf
 // _ _ S had a few reasons, but forgot most of them now, point is, would also make things more complicated
 
-
+// ignore: slash_for_doc_comments
 /**
  tabs = {
    // this would be a leaf id that is never resolved to a widget by the user of mondrian, just so that the tab window can be handled by the leaf logic on move and resize
@@ -75,3 +72,166 @@ class TabbedWindow {}
    }
  }
  */
+
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
+import 'package:mondrian/mondrian.dart';
+
+// TODO extend WindowManagerLeafIdInternal instead once implemented
+class WindowManagerTabLeafId extends WindowManagerLeafId {
+  const WindowManagerTabLeafId(String value) : super(value);
+}
+
+/// A container for [WindowManagerLeafId]s which can be placed as its own [WindowManagerLeaf] insides [WindowManagerTree]
+class TabbedWindow {
+  final WindowManagerTabLeafId id;
+  final List<WindowManagerLeafId> tabs;
+  final int activeTabIndex;
+
+  WindowManagerLeafId get activeTab => tabs[activeTabIndex];
+
+  const TabbedWindow({
+    required this.id,
+    required this.tabs,
+    required this.activeTabIndex,
+  });
+}
+
+class MondrianWithTabs extends MondrianMoveable {
+  const MondrianWithTabs({
+    Key? key,
+    required WindowManagerTree tree,
+    required void Function(WindowManagerTree tree) onResizeDone,
+    required void Function(WindowManagerTree tree) onMoveDone,
+    required this.onTabSwitch,
+    required this.tabs,
+  }) : super(
+          key: key,
+          tree: tree,
+          onResizeDone: onResizeDone,
+          onMoveDone: onMoveDone,
+        );
+
+  final void Function(TabbedWindow tabContainer) onTabSwitch;
+
+  // TODO would be nice to expose a single tree that contains the tabs as well... would need to duplicate all regular tree objects and parse that combined tree into the internal non-tab tree as well as a internal tab map
+  final Map<WindowManagerTabLeafId, TabbedWindow> tabs;
+
+  @override
+  State<MondrianWithTabs> createState() => _MondrianWithTabsState();
+}
+
+class _MondrianWithTabsState<M extends MondrianWithTabs> extends MondrianMoveableState<M> {
+  @override
+  Widget resolveLeaf(leafId, leafPath, leafAxis) {
+    if (leafId is WindowManagerTabLeafId) {
+      final tabWindow = widget.tabs[leafId]!;
+
+      return Column(
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Tab header
+          // TODO must be scrollable if to long
+          SizedBox(
+            height: 20,
+            child: Row(
+              children: [
+                for (int i = 0; i < tabWindow.tabs.length; i++) ...[
+                  WindowMoveHandle(
+                    dragIndicator: Container(
+                      height: 100,
+                      width: 100,
+                      color: Colors.white.withAlpha(100),
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        widget.onTabSwitch(TabbedWindow(
+                          id: tabWindow.id,
+                          tabs: tabWindow.tabs,
+                          activeTabIndex: i,
+                        ));
+                      },
+                      child: Container(
+                        height: 20,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blueAccent),
+                          color: (i == tabWindow.activeTabIndex) ? Colors.grey : Colors.black,
+                        ),
+                        child: AutoSizeText(text: tabWindow.tabs[i].value),
+                      ),
+                    ),
+                    onMoveEnd: () {
+                      movingId = null;
+                      setState(() {});
+                    },
+                    onMoveStart: () {
+                      movingId = tabWindow.tabs[i];
+                      lastMovingPath = [...leafPath, i]; // ADD TAB INDEX TO PATH
+                      setState(() {});
+                    },
+                    onMoveUpdate: (d) {},
+                  ),
+                ],
+                // Complete lead with all tabs
+                Expanded(
+                  child: WindowMoveHandle(
+                    dragIndicator: Container(
+                      height: 100,
+                      width: 100,
+                      color: Colors.white.withAlpha(100),
+                    ),
+                    child: Container(
+                      height: 20,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blueAccent),
+                        color: Colors.black,
+                      ),
+                    ),
+                    onMoveEnd: () {
+                      movingId = null;
+                      setState(() {});
+                    },
+                    onMoveStart: () {
+                      movingId = tabWindow.id;
+                      lastMovingPath = [...leafPath]; // ADD TAB INDEX TO PATH
+                      setState(() {});
+                    },
+                    onMoveUpdate: (d) {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: WindowMoveTarget(
+              onDrop: (pos) {
+                // TODO adjust source tab and potential destination tab
+                // TODO also listen for pos == center
+                // widget.onMoveDone(
+                //   widget.tree.moveLeaf(
+                //     sourcePath: lastMovingPath!,
+                //     targetPath: leafPath,
+                //     targetSide: pos,
+                //   ),
+                // );
+              },
+              isActive: movingId != null && movingId != leafId && !tabWindow.tabs.contains(movingId),
+              target: Container(
+                color: Colors.red,
+              ),
+              child: Center(
+                child: AutoSizeText(
+                  text: tabWindow.activeTab.value,
+                ), // + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}"),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return super.resolveLeaf(leafId, leafPath, leafAxis);
+  }
+}

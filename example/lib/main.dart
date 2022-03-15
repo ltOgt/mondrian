@@ -15,6 +15,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   var tree = k_tree;
+  var tabs = k_tabs;
 
   WindowManagerLeafId? movingId;
   List<int>? lastMovingPath;
@@ -34,7 +35,13 @@ class _MyAppState extends State<MyApp> {
           onPressed: toggleDebugPaint,
           child: const Icon(Icons.brush),
         ),
-        body: MondrianMoveable(
+        body: MondrianWithTabs(
+          tabs: tabs,
+          onTabSwitch: (t) {
+            setState(() {
+              tabs[t.id] = t;
+            });
+          },
           tree: tree,
           onMoveDone: (tree) {
             setState(() {
@@ -52,6 +59,17 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
+final k_tabs = <WindowManagerTabLeafId, TabbedWindow>{
+  const WindowManagerTabLeafId("Tab Group 1"): const TabbedWindow(
+    id: WindowManagerTabLeafId("Tab Group 1"),
+    tabs: [
+      WindowManagerLeafId("Tab Child 1"),
+      WindowManagerLeafId("Tab Child 2"),
+      WindowManagerLeafId("Tab Child 3"),
+    ],
+    activeTabIndex: 0,
+  ),
+};
 const k_tree = WindowManagerTree(
   rootAxis: WindowAxis.vertical,
   rootNode: WindowManagerBranch(
@@ -62,7 +80,8 @@ const k_tree = WindowManagerTree(
         children: [
           WindowManagerLeaf(
             fraction: .7,
-            id: WindowManagerLeafId("Big top left"),
+            //id: WindowManagerLeafId("Big top left"),
+            id: WindowManagerTabLeafId("Tab Group 1"),
           ),
           WindowManagerBranch(
             fraction: .3,

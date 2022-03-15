@@ -38,10 +38,10 @@ class MondrianMoveable extends StatefulWidget {
   final void Function(WindowManagerTree tree) onMoveDone;
 
   @override
-  State<MondrianMoveable> createState() => _MondrianMoveableState();
+  State<MondrianMoveable> createState() => MondrianMoveableState();
 }
 
-class _MondrianMoveableState extends State<MondrianMoveable> {
+class MondrianMoveableState<M extends MondrianMoveable> extends State<M> {
   WindowManagerLeafId? movingId;
   List<int>? lastMovingPath;
 
@@ -59,56 +59,58 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
         });
         widget.onResizeDone(updatedTree);
       },
-      resolveLeafToWidget: (leafId, leafPath, leafAxis) {
-        return Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            WindowMoveHandle(
-              dragIndicator: Container(
-                height: 100,
-                width: 100,
-                color: Colors.white.withAlpha(100),
-              ),
-              child: Container(
-                height: 10,
-                color: Colors.black,
-              ),
-              onMoveEnd: () {
-                movingId = null;
-                setState(() {});
-              },
-              onMoveStart: () {
-                movingId = leafId;
-                lastMovingPath = leafPath;
-                setState(() {});
-              },
-              onMoveUpdate: (d) {},
-            ),
-            Expanded(
-              child: WindowMoveTarget(
-                onDrop: (pos) {
-                  widget.onMoveDone(
-                    widget.tree.moveLeaf(
-                      sourcePath: lastMovingPath!,
-                      targetPath: leafPath,
-                      targetSide: pos,
-                    ),
-                  );
-                },
-                isActive: movingId != null && movingId != leafId,
-                target: Container(
-                  color: Colors.red,
+      resolveLeafToWidget: resolveLeaf,
+    );
+  }
+
+  Widget resolveLeaf(leafId, leafPath, leafAxis) {
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        WindowMoveHandle(
+          dragIndicator: Container(
+            height: 100,
+            width: 100,
+            color: Colors.white.withAlpha(100),
+          ),
+          child: Container(
+            height: 10,
+            color: Colors.black,
+          ),
+          onMoveEnd: () {
+            movingId = null;
+            setState(() {});
+          },
+          onMoveStart: () {
+            movingId = leafId;
+            lastMovingPath = leafPath;
+            setState(() {});
+          },
+          onMoveUpdate: (d) {},
+        ),
+        Expanded(
+          child: WindowMoveTarget(
+            onDrop: (pos) {
+              widget.onMoveDone(
+                widget.tree.moveLeaf(
+                  sourcePath: lastMovingPath!,
+                  targetPath: leafPath,
+                  targetSide: pos,
                 ),
-                child: Center(
-                  child: AutoSizeText(
-                      text: leafId.value), // + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}"),
-                ),
-              ),
+              );
+            },
+            isActive: movingId != null && movingId != leafId,
+            target: Container(
+              color: Colors.red,
             ),
-          ],
-        );
-      },
+            child: Center(
+              child:
+                  AutoSizeText(text: leafId.value), // + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}"),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
