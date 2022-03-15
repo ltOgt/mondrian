@@ -41,7 +41,7 @@ class MondrianWidget extends StatefulWidget {
   State<MondrianWidget> createState() => MondrianWidgetState();
 }
 
-class MondrianWidgetState<M extends MondrianWidget> extends State<M> {
+class MondrianWidgetState extends State<MondrianWidget> {
   MondrianTreeLeafId? movingId;
   List<int>? lastMovingPath;
 

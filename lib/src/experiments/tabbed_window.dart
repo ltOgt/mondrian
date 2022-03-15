@@ -174,6 +174,7 @@ moving a tab in still requires a special case for the pos.center (dropping on th
 
 */
 
+/*
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
@@ -193,6 +194,7 @@ class TabbedWindow {
     required this.activeTabIndex,
   });
 }
+
 
 class MondrianWithTabs extends MondrianWidget {
   const MondrianWithTabs({
@@ -331,3 +333,4 @@ class _MondrianWithTabsState<M extends MondrianWithTabs> extends MondrianWidgetS
     return super.resolveLeaf(leafId, leafPath, leafAxis);
   }
 }
+*/

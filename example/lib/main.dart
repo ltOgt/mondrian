@@ -15,7 +15,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   var tree = k_tree;
-  var tabs = k_tabs;
 
   MondrianTreeLeafId? movingId;
   List<int>? lastMovingPath;
@@ -53,17 +52,6 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-final k_tabs = <MondrianTreeTabLeafId, TabbedWindow>{
-  const MondrianTreeTabLeafId("Tab Group 1"): const TabbedWindow(
-    id: MondrianTreeTabLeafId("Tab Group 1"),
-    tabs: [
-      MondrianTreeLeafId("Tab Child 1"),
-      MondrianTreeLeafId("Tab Child 2"),
-      MondrianTreeLeafId("Tab Child 3"),
-    ],
-    activeTabIndex: 0,
-  ),
-};
 final k_tree = MondrianTree(
   rootAxis: MondrianAxis.vertical,
   rootNode: MondrianTreeBranch(

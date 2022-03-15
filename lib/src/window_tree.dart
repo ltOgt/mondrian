@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
+import 'package:mondrian/src/utils.dart';
 
 enum MondrianAxis {
   horizontal,
