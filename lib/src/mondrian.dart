@@ -43,7 +43,6 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
       tree: widget.tree,
       initialAxis: widget.axis,
       onResize: (pathToParent, newFraction, index) {
-        print("resize: $newFraction");
         final updatedTree = widget.tree.updatePath(pathToParent, (node) {
           return (node as WindowManagerBranch).updateChildFraction(
             index: index,
@@ -98,12 +97,8 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
   }
 
   void onDrop(WindowMoveTargetDropPosition pos, List<int> leafPath, Axis leafAxis) {
-    print("ON DROP START");
-
     var _tree = widget.tree;
     var _rootAxis = widget.axis;
-
-    print("TREE: $_tree");
 
     final sourcePath = lastMovingPath!;
     final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
@@ -213,16 +208,11 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
       });
     }
 
-    print("ADDED TO NEW LOCATION");
-    print("TREE: $_tree");
-
     if (!isReorderInSameParent) {
       // 2) remove
 
       if (sourcePathToParent.isEmpty) {
         _tree = _tree.updatePath(sourcePathToParent, (root) {
-          print("UPDATE ROOT");
-
           // Parent is root node
           (root as WindowManagerBranch);
           assert(root.children.any((e) => e is WindowManagerLeaf && e.id == sourceNode.id));
@@ -527,7 +517,6 @@ class _MondrianNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (node is WindowManagerLeaf) {
-      print("Building Leaf Node: $node");
       return resolveLeafToWidget((node as WindowManagerLeaf).id, path, axis.previous);
     }
     final nextAxis = axis.next;
