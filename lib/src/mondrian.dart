@@ -179,6 +179,8 @@ class MondrianWM extends StatelessWidget {
 }
 
 class _MondrianNode extends StatelessWidget {
+  static const _minNodeExtend = 40;
+
   const _MondrianNode({
     Key? key,
     required this.node,
@@ -211,8 +213,18 @@ class _MondrianNode extends StatelessWidget {
     /// xtnd' = max * frac'
     /// frac' = xtnd' / max
 
-    final double oldExtend = maxExtendAxis * (node as WindowManagerBranch).children[index].fraction;
-    final double newFraction = (oldExtend + deltaAxis) / maxExtendAxis;
+    final double oldFraction = (node as WindowManagerBranch).children[index].fraction;
+    final double oldExtend = maxExtendAxis * oldFraction;
+    final double newExtend = (oldExtend + deltaAxis);
+    final double newFraction = newExtend / maxExtendAxis;
+
+    // check minimum extend of this node and its neighbour
+    if (newExtend < _minNodeExtend) return;
+    // guaranteed to have a neighbour node, otherwise could not resize at this index
+    final neighbourFraction = (node as WindowManagerBranch).children[index + 1].fraction;
+    final newNeighbourFraction = neighbourFraction + (oldFraction - newFraction);
+    final newNeighbourExtend = maxExtendAxis * newNeighbourFraction;
+    if (newNeighbourExtend < _minNodeExtend) return;
 
     onResize(path, newFraction, index);
   }
