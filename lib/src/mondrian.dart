@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
@@ -281,6 +280,10 @@ class _MondrianNode extends StatelessWidget {
                 // cant use doubles, but this is the suggested workaround
                 // see e.g. https://github.com/flutter/flutter/issues/22512
                 flex: (children[i].fraction * 1000).round(),
+                //TODO: _______________________________________________________
+                // might even consider using only integers instead of doubles
+                // like e.g a step count of 100.000 would already equal the current 1.00000 precision
+                // without any of the rounding issues
                 child: _MondrianNode(
                   node: children[i],
                   axis: nextAxis,

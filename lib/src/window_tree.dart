@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:mondrian/mondrian.dart';
 
-import 'package:mondrian/src/utils.dart';
-
 enum WindowAxis {
   horizontal,
   vertical,
@@ -124,7 +122,6 @@ class WindowManagerTree {
           }
         }
 
-        // TODO might need to adjust the source parent path at this point
         // § source [0,1,0] with target [0,0] on same axis
         // _ => will result in target parent (0,1) => (0,1,2)
         // _ _ -- insert before
