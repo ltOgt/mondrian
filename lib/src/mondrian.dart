@@ -15,19 +15,28 @@ class MondrianDebugSingleton {
   }
 }
 
+extension WindowAxisFlutterX on WindowAxis {
+  Axis get asFlutterAxis {
+    switch (this) {
+      case WindowAxis.horizontal:
+        return Axis.horizontal;
+      case WindowAxis.vertical:
+        return Axis.vertical;
+    }
+  }
+}
+
 class MondrianMoveable extends StatefulWidget {
   const MondrianMoveable({
     Key? key,
-    required this.axis,
     required this.tree,
     required this.onMoveDone,
     required this.onResizeDone,
   }) : super(key: key);
 
-  final Axis axis;
   final WindowManagerTree tree;
   final void Function(WindowManagerTree tree) onResizeDone;
-  final void Function(WindowManagerTree tree, Axis axis) onMoveDone;
+  final void Function(WindowManagerTree tree) onMoveDone;
 
   @override
   State<MondrianMoveable> createState() => _MondrianMoveableState();
@@ -41,7 +50,7 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
   Widget build(BuildContext context) {
     return MondrianWM(
       tree: widget.tree,
-      initialAxis: widget.axis,
+      initialAxis: widget.tree.rootAxis.asFlutterAxis,
       onResize: (pathToParent, newFraction, index) {
         final updatedTree = widget.tree.updatePath(pathToParent, (node) {
           return (node as WindowManagerBranch).updateChildFraction(
@@ -98,7 +107,7 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
 
   void onDrop(WindowMoveTargetDropPosition pos, List<int> leafPath, Axis leafAxis) {
     var _tree = widget.tree;
-    var _rootAxis = widget.axis;
+    var _rootAxis = widget.tree.rootAxis;
 
     final sourcePath = lastMovingPath!;
     final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
@@ -264,7 +273,7 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
           final onlyChild = rootChildrenWithoutSourceNode.first;
 
           // Need to flip axis here to preserve orientation, since changing top level
-          _rootAxis = Axis.values[(_rootAxis.index + 1) % Axis.values.length];
+          _rootAxis = WindowAxis.values[(_rootAxis.index + 1) % Axis.values.length];
 
           // IF THE ONLY CHILD IS A LEAF, USE ROOT FRACTION => DONE
           if (onlyChild is WindowManagerLeaf) {
@@ -404,7 +413,9 @@ class _MondrianMoveableState extends State<MondrianMoveable> {
       }
     }
 
-    widget.onMoveDone(_tree, _rootAxis);
+    widget.onMoveDone(
+      WindowManagerTree(rootNode: _tree.rootNode, rootAxis: _rootAxis),
+    );
   }
 }
 

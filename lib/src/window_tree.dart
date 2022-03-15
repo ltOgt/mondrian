@@ -1,6 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:mondrian/mondrian.dart';
 
 import 'package:mondrian/src/utils.dart';
+
+enum WindowAxis {
+  horizontal,
+  vertical,
+}
 
 /// The index for each child that must be passed to reach the destination node.
 typedef WindowManagerTreePath = List<int>;
@@ -8,18 +14,26 @@ typedef WindowManagerTreePath = List<int>;
 /// The tree of [WindowManagerNodeAbst]s specifying the partition of the window.
 class WindowManagerTree {
   final WindowManagerNodeAbst rootNode;
+  final WindowAxis rootAxis;
 
   const WindowManagerTree({
     required this.rootNode,
+    required this.rootAxis,
   });
 
   WindowManagerTree updatePath(WindowManagerTreePath path, NodeUpdater updateNode) {
     if (rootNode is WindowManagerLeaf) {
       final n = (rootNode as WindowManagerLeaf);
-      return WindowManagerTree(rootNode: n.updatePath(path, updateNode));
+      return WindowManagerTree(
+        rootNode: n.updatePath(path, updateNode),
+        rootAxis: rootAxis,
+      );
     } else if (rootNode is WindowManagerBranch) {
       final n = (rootNode as WindowManagerBranch);
-      return WindowManagerTree(rootNode: n.updatePath(path, updateNode));
+      return WindowManagerTree(
+        rootNode: n.updatePath(path, updateNode),
+        rootAxis: rootAxis,
+      );
     }
     throw "Unknown type ${rootNode.runtimeType}";
   }
@@ -32,6 +46,18 @@ class WindowManagerTree {
       return (rootNode as WindowManagerBranch).extractPath(path);
     }
     throw "Unknown type ${rootNode.runtimeType}";
+  }
+
+  // TODO consider adding a method "leafPathFromId(WindowLeafId)" that searches the tree recursively, while building a path and returning it on match
+
+  WindowManagerTree moveLeaf({
+    required WindowManagerTreePath sourcePath,
+    required WindowManagerTreePath targetPath,
+    required WindowMoveTargetDropPosition targetSide,
+    // TODO can calulate leafAxis from its depth
+    // TODO DO need to have aix stored in tree though, for leafAxis, but also since if will have to be flipped in this method.
+  }) {
+    throw UnimplementedError();
   }
 
   @override

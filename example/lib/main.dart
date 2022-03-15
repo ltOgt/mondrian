@@ -24,8 +24,6 @@ class _MyAppState extends State<MyApp> {
     setState(() {});
   }
 
-  Axis initialAxis = Axis.vertical;
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,12 +35,10 @@ class _MyAppState extends State<MyApp> {
           child: const Icon(Icons.brush),
         ),
         body: MondrianMoveable(
-          axis: initialAxis,
           tree: tree,
-          onMoveDone: (tree, axis) {
+          onMoveDone: (tree) {
             setState(() {
               this.tree = tree;
-              initialAxis = axis;
             });
           },
           onResizeDone: (tree) {
@@ -57,6 +53,7 @@ class _MyAppState extends State<MyApp> {
 }
 
 const k_tree = WindowManagerTree(
+  rootAxis: WindowAxis.vertical,
   rootNode: WindowManagerBranch(
     fraction: 1,
     children: [
