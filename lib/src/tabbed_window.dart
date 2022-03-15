@@ -1,10 +1,10 @@
-//TODO maybe good idea to have top level lookup of Map<LeafId, TreePath> that has to be updated on moves
+// TODO maybe good idea to have top level lookup of Map<LeafId, TreePath> that has to be updated on moves
 // + quick resolve if needed (no search necessary)
 // - need to keep consistent, and probably build once on start up (small negative though)
 // + can quickly check for containment
 // _ => before adding unchecked duplicates
 
-//TODO what about duplicate IDs ...
+// TODO what about duplicate IDs ...
 // ! its perfectly legal to have multiple windows with the same file open...
 // ? maybe can use above idea of top level lookup as workaround
 // _ : have _
@@ -73,10 +73,140 @@
  }
  */
 
+/*
+
+Maybe really go for the single tree approach in combination with the public/private keys
+
+Could either first implement the public/private for duplicate leafs in master, and then use that here.
+Or implement it here and later use it for duplicate leafs in master.
+
+Sketch of desirable API:
+
+tree: MondrianTree(
+  root: MondrianBranch(
+    fraction: 1,              TODO would be good idea to have an assertion in tree that the root is always fraction 1
+    children: [
+      // regual branches and leafs
+      <...>,
+      MondrianTabContainer(   TODO this is basically the same as a leaf, and will internally represented as such, but does not need to subclass the leaf (mapped to _LeafInternal)
+        fraction: <fraction>,
+        activeTabIndex: 0,
+        // NO PUBLIC ID, only internal one (just like branches)
+        tabs: [
+          MondrianTab(        TODO this will still get a leaf id (public and internal), but will not be mapped to a _LeafInternal while in the tab group
+            id: <public_leaf_id>,
+            // NO FRACTION
+          ),
+        ],
+      ),
+    ],
+
+  ),
+),
+
+
+............
+Might need to implement it as a custom Node type after all...
+<- When moving a tab out of the tab group, the adding part is not a problem, but the removal part would cause issues if the core does not know about tabs
+
+But maybe in combination with the private / internal tree it still works out to have the internal tab group be an extension of the child
+  Move insertion of the tab group, as well as of a single tab would work as is, all assumptions should still hold
+  Only need to add the center case, which is already sketched out and not too hard to implement
+
+  Move removal just needs an aditional outer case that checks if the source is a tab
+    if still children left => just remove child and change active index
+    other wise change the tab to a leaf
+
+The internal / public IDs + trees are still needed for duplicate leafs anyways, so we can get away with no id for a tab container in the tree the user sees
+
+
+The problem with two seperate trees is that if we return the altered public tree to the user, we will always need to rebuild the private tree on each setState
+
+maybe instead, we just add an internal CircleId to MondrianTab that is not exposed to the user.
+this would not be serialized, and there is no need for it to be stable across two different move processes.
+§ {
+  class MondrianTab extends WindowManagerLeaf {
+    final int activeTabIndex;
+    final List<WindowManagerLeafId> tabs;
+
+    MondrianTab._({
+      required WindowManagerLeafId id,
+      required double fraction,
+      required this.tabs,
+      required this.activeTabIndex,
+    }) : super(id: id, fraction: fraction);
+
+    static final CircleIdGen _idGen = CircleIdGen();
+
+    factory MondrianTab({
+      required double fraction,
+      required List<WindowManagerTabLeafId> tabs,
+      required int activeTabIndex,
+    }) =>
+        MondrianTab._(
+          id: WindowManagerTabLeafId(_idGen.next.value),
+          fraction: fraction,
+          tabs: tabs,
+          activeTabIndex: activeTabIndex,
+        );
+
+    @override
+    WindowManagerNodeAbst updateFraction(double newFraction) {
+      return MondrianTab._(
+        id: id,
+        fraction: newFraction,
+        tabs: tabs,
+        activeTabIndex: activeTabIndex,
+      );
+    }
+  }
+}
+
+
+
+
+*/
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
+
+class MondrianTab extends WindowManagerLeaf {
+  final int activeTabIndex;
+  final List<WindowManagerLeafId> tabs;
+
+  MondrianTab._({
+    required WindowManagerLeafId id,
+    required double fraction,
+    required this.tabs,
+    required this.activeTabIndex,
+  }) : super(id: id, fraction: fraction);
+
+  static final CircleIdGen _idGen = CircleIdGen();
+
+  factory MondrianTab({
+    required double fraction,
+    required List<WindowManagerTabLeafId> tabs,
+    required int activeTabIndex,
+  }) =>
+      MondrianTab._(
+        id: WindowManagerTabLeafId(_idGen.next.value),
+        fraction: fraction,
+        tabs: tabs,
+        activeTabIndex: activeTabIndex,
+      );
+
+  @override
+  WindowManagerNodeAbst updateFraction(double newFraction) {
+    return MondrianTab._(
+      id: id,
+      fraction: newFraction,
+      tabs: tabs,
+      activeTabIndex: activeTabIndex,
+    );
+  }
+}
 
 // TODO extend WindowManagerLeafIdInternal instead once implemented
 class WindowManagerTabLeafId extends WindowManagerLeafId {
