@@ -45,7 +45,7 @@ class _MyAppState extends State<MyApp> {
             path: path,
             axis: axis,
             // Needed to put in meta data >
-            text: id.value,
+            text: id.value + " ${(tree.extractPath(path) as WindowManagerLeaf).fraction}",
             onMoveStart: () {
               movingId = id;
               lastMovingPath = path;
@@ -140,9 +140,9 @@ class _MyAppState extends State<MyApp> {
                     if (i == targetChildIndex) {
                       // on reorder in same parent we want to keep the same sizes, otherwise we split the size of the target between the two
                       final newTargetFraction =
-                          isReorderInSameParent ? targetChild.fraction : targetChild.fraction * 0.5;
+                          isReorderInSameParent ? targetChild.fraction : cutPrecision(targetChild.fraction * 0.5);
                       final newSourceFraction =
-                          isReorderInSameParent ? sourceNode.fraction : targetChild.fraction * 0.5;
+                          isReorderInSameParent ? sourceNode.fraction : cutPrecision(targetChild.fraction * 0.5);
 
                       if (pos.isLeft || pos.isTop) {
                         children.add(sourceNode.updateFraction(newSourceFraction));
@@ -169,7 +169,7 @@ class _MyAppState extends State<MyApp> {
                   // _ _ _ => source is now at [0,1]
                   // _ _ _ => source old parent is now at [0,2] instead of [0,1]
                   // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
-                  if (sourcePathToParent.length >= targetPathToParent.length) {
+                  if (sourcePathToParent.length > targetPathToParent.length) {
                     final potentiallySharedParentPath = sourcePathToParent.sublist(0, targetPathToParent.length);
                     if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
                       // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
@@ -216,15 +216,21 @@ class _MyAppState extends State<MyApp> {
 
                     // ------------------------------------------------------------------------------------------------
                     // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
-                    final removedFractionToDistribute = sourceNode.fraction / root.children.length;
+                    final removedFractionToDistribute = sourceNode.fraction / (root.children.length - 1);
                     List<WindowManagerNodeAbst> rootChildrenWithoutSourceNode = [
                       for (final child in root.children) //
                         if (false == (child is WindowManagerLeaf && child.id == sourceNode.id)) //
-                          child.updateFraction(child.fraction + removedFractionToDistribute),
+                          child.updateFraction(
+                            cutPrecision(child.fraction + removedFractionToDistribute),
+                          ),
                     ];
                     assert(
-                      rootChildrenWithoutSourceNode.fold(0.0, (double acc, ele) => acc + ele.fraction).round() == 1,
-                    );
+                      () {
+                        final distance = _sumDistanceToOne(rootChildrenWithoutSourceNode);
+                        print("Resulting error on rebalance: $distance");
+                        return distance < 0.01;
+                      }(),
+                    ); // TODO maybe rebalance here instead?
 
                     // ------------------------------------------------------------------------------------------------
                     // IF ROOT STILL HAS MULTIPLE CHILDREN => USE THOSE
@@ -239,25 +245,25 @@ class _MyAppState extends State<MyApp> {
                     // IF ROOT ONLY HAS A SINGLE CHILD, REPLACE ROOT WITH THAT CHILD
                     final onlyChild = rootChildrenWithoutSourceNode.first;
 
-                      // Need to flip axis here to preserve orientation, since changing top level
-                      initialAxis = Axis.values[(initialAxis.index + 1) % Axis.values.length];
+                    // Need to flip axis here to preserve orientation, since changing top level
+                    initialAxis = Axis.values[(initialAxis.index + 1) % Axis.values.length];
 
                     // IF THE ONLY CHILD IS A LEAF, USE ROOT FRACTION => DONE
-                      if (onlyChild is WindowManagerLeaf) {
+                    if (onlyChild is WindowManagerLeaf) {
                       return WindowManagerLeaf(
                         fraction: root.fraction,
                         id: onlyChild.id,
                       );
-                      }
+                    }
 
                     // IF THE ONLY CHILD IS A BRANCH, USE ROOT FRACTION => DONE
-                      if (onlyChild is WindowManagerBranch) {
-                        return WindowManagerBranch(
+                    if (onlyChild is WindowManagerBranch) {
+                      return WindowManagerBranch(
                         fraction: root.fraction,
-                          children: onlyChild.children,
-                        );
-                      }
-                      throw "Unknown node type: ${onlyChild.runtimeType}";
+                        children: onlyChild.children,
+                      );
+                    }
+                    throw "Unknown node type: ${onlyChild.runtimeType}";
                   });
                 } else {
                   final sourcePathToParentsParent = sourcePathToParent.sublist(0, sourcePathToParent.length - 1);
@@ -270,15 +276,21 @@ class _MyAppState extends State<MyApp> {
 
                     // ------------------------------------------------------------------------------------------------
                     // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
-                    final removedFractionToDistribute = sourceNode.fraction / parent.children.length;
+                    final removedFractionToDistribute = sourceNode.fraction / (parent.children.length - 1);
                     List<WindowManagerNodeAbst> parentChildrenWithoutSourceNode = [
                       for (final child in parent.children) //
                         if (false == (child is WindowManagerLeaf && child.id == sourceNode.id)) //
-                          child.updateFraction(child.fraction + removedFractionToDistribute),
+                          child.updateFraction(
+                            cutPrecision(child.fraction + removedFractionToDistribute),
+                          ),
                     ];
                     assert(
-                      parentChildrenWithoutSourceNode.fold(0.0, (double acc, ele) => acc + ele.fraction).round() == 1,
-                    );
+                      () {
+                        final distance = _sumDistanceToOne(parentChildrenWithoutSourceNode);
+                        print("Resulting error on rebalance: $distance");
+                        return distance < 0.01;
+                      }(),
+                    ); // TODO maybe rebalance here instead?
 
                     // ------------------------------------------------------------------------------------------------
                     // IF PARENT STILL HAS MULTIPLE CHILDREN => USE THOSE
@@ -304,56 +316,56 @@ class _MyAppState extends State<MyApp> {
                     final onlyChild = parentChildrenWithoutSourceNode.first;
 
                     // IF THE ONLY CHILD IS A LEAF, USE PARENT FRACTION => DONE
-                      if (onlyChild is WindowManagerLeaf) {
-                        // replace parent with only child
+                    if (onlyChild is WindowManagerLeaf) {
+                      // replace parent with only child
                       final parentReplacement = WindowManagerLeaf(
                         id: onlyChild.id,
                         fraction: parent.fraction,
                       );
-                        final replacedParentInsideParentsParent = parentsParent.children;
+                      final replacedParentInsideParentsParent = parentsParent.children;
                       replacedParentInsideParentsParent[sourcePathToParentIndex] = parentReplacement;
 
-                        return WindowManagerBranch(
-                          fraction: parentsParent.fraction,
-                          children: replacedParentInsideParentsParent,
-                        );
-                      }
+                      return WindowManagerBranch(
+                        fraction: parentsParent.fraction,
+                        children: replacedParentInsideParentsParent,
+                      );
+                    }
 
                     // IF THE ONLY CHILD IS A BRANCH, REPLACE PARENT WITH THE CHILDREN OF THAT BRANCH
                     // § Root(A,Row(B,C)) with C above B => Root(A,Row(Col(B,C))); SHOULD BE Root(A, B, C)
                     // _ (Root == ParentParent, Row = Parent, Col(B,C) = Child)
-                      if (onlyChild is WindowManagerBranch) {
-                      final parentFractionToDistribute = parent.fraction / onlyChild.children.length;
+                    if (onlyChild is WindowManagerBranch) {
+                      // parent fraction will be split among childrens children based on their fraction inside of parents child
+                      final parentFractionToDistribute = parent.fraction;
 
                       final childsChildrenInsteadOfParentInsideParentsParent = [
-                            for (int i = 0; i < parentsParent.children.length; i++)
+                        for (int i = 0; i < parentsParent.children.length; i++)
                           if (i != sourcePathToParentIndex) ...[
                             // Use the regular children of parentsParent
                             parentsParent.children[i],
                           ] else ...[
                             // But replace the parent with the childs children
-                                for (int j = 0; j < onlyChild.children.length; j++) ...[
+                            for (int j = 0; j < onlyChild.children.length; j++) ...[
                               onlyChild.children[j].updateFraction(
-                                onlyChild.children[j].fraction + parentFractionToDistribute,
+                                cutPrecision(onlyChild.children[j].fraction * parentFractionToDistribute),
                               ),
-                                ]
-                              ]
-                          ];
-                      assert(
-                        childsChildrenInsteadOfParentInsideParentsParent
-                                .fold(0.0, (double acc, ele) => acc + ele.fraction)
-                                .round() ==
-                            1,
-                          );
+                            ]
+                          ]
+                      ];
+                      assert(() {
+                        final distance = _sumDistanceToOne(childsChildrenInsteadOfParentInsideParentsParent);
+                        print("Resulting error on rebalance: $distance");
+                        return distance < 0.01;
+                      }());
 
                       // PARENTs PARENT (removed direct parent, as well as direct child)
-                          return WindowManagerBranch(
-                            fraction: parentsParent.fraction,
+                      return WindowManagerBranch(
+                        fraction: parentsParent.fraction,
                         children: childsChildrenInsteadOfParentInsideParentsParent,
-                          );
-                        }
+                      );
+                    }
 
-                      throw "Unknown node type: ${onlyChild.runtimeType}";
+                    throw "Unknown node type: ${onlyChild.runtimeType}";
                   });
                 }
               }
@@ -366,7 +378,10 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-const k_tree = WindowManagerTree(
+double _sumDistanceToOne(List<WindowManagerNodeAbst> list) =>
+    (1.0 - list.fold<double>(0.0, (double acc, ele) => acc + ele.fraction)).abs();
+
+final k_tree = WindowManagerTree(
   rootNode: WindowManagerBranch(
     fraction: 1,
     children: [
@@ -381,11 +396,11 @@ const k_tree = WindowManagerTree(
             fraction: .3,
             children: [
               WindowManagerLeaf(
-                fraction: .6,
+                fraction: .5,
                 id: WindowManagerLeafId("Medium Top Right"),
               ),
               WindowManagerLeaf(
-                fraction: .6,
+                fraction: .5,
                 id: WindowManagerLeafId("Small Mid Right"),
               ),
             ],

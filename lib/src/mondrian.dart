@@ -102,9 +102,8 @@ class _MondrianNode extends StatelessWidget {
 
     final double oldExtend = maxExtendAxis * (node as WindowManagerBranch).children[index].fraction;
     final double newFraction = (oldExtend + deltaAxis) / maxExtendAxis;
-    final double newFractionRound = double.parse(newFraction.toStringAsFixed(5));
 
-    onResize(path, newFractionRound, index);
+    onResize(path, newFraction, index);
   }
 
   @override

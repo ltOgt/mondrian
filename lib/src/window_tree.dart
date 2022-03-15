@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:mondrian/src/utils.dart';
 
 /// The index for each child that must be passed to reach the destination node.
 typedef WindowManagerTreePath = List<int>;
@@ -163,8 +164,13 @@ class WindowManagerBranch extends WindowManagerNodeAbst {
     final child2 = children[index + 1];
 
     final diff = child1.fraction - newFraction;
-    final child1Updated = child1.updateFraction(newFraction);
-    final child2Updated = child2.updateFraction(child2.fraction + diff);
+    final new2 = child2.fraction + diff;
+    // round both to avoid precision issues
+    final newRounded = cutPrecision(newFraction);
+    final new2Rounded = cutPrecision(new2);
+
+    final child1Updated = child1.updateFraction(newRounded);
+    final child2Updated = child2.updateFraction(new2Rounded);
 
     return WindowManagerBranch(
       fraction: fraction,
