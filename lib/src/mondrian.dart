@@ -120,7 +120,7 @@ class MondrianWidgetState extends State<MondrianWidget> {
                         },
                         onMoveStart: () {
                           movingId = tabLeaf.tabs[i];
-                          lastMovingPath = [...leafPath, i]; // ADD TAB INDEX TO PATH
+                          lastMovingPath = leafPath;
                           lastMovingTabIndex = i;
                           setState(() {});
                           widget.onTabChange(
@@ -155,7 +155,8 @@ class MondrianWidgetState extends State<MondrianWidget> {
                       },
                       onMoveStart: () {
                         movingId = tabLeaf.id;
-                        lastMovingPath = [...leafPath]; // ADD TAB INDEX TO PATH
+                        lastMovingPath = leafPath;
+                        lastMovingTabIndex = null;
                         setState(() {});
                       },
                       onMoveUpdate: (d) {},

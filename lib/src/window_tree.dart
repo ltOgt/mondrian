@@ -69,7 +69,20 @@ class MondrianTree {
     var _rootAxis = rootAxis;
 
     final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
-    final sourceNode = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
+    final _sourceNode = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
+    final sourceNode = (tabIndexIfAny == null) //
+        ? _sourceNode
+        : MondrianTreeLeaf(id: (_sourceNode as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
+    // TODO might be possible to instead switch over the subtype directly
+    // ____ assuming that the the dragged tab will be set as the active one before entering here, the active node can be taken from the _sourceNode directly
+    // if (false) {
+    //   final _sourceNode_ = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
+    //   if (_sourceNode_ is MondrianTreeTabLeaf) {
+    //     final sourceNode_ = MondrianTreeLeaf(id: (_sourceNode as MondrianTreeTabLeaf).activeTab, fraction: 0);
+    //   }
+    // }
+    // ____ in this case, we would not need the "tabIndexIfAny" parameter at all
+    // SSSS this will not work because than we cant distinguish between "active node moved" and "tab group moved"
 
     final targetPathToParent = targetPath.sublist(0, targetPath.length - 1);
     final targetChildIndex = targetPath.last;
@@ -84,6 +97,7 @@ class MondrianTree {
 
     // 1) insert
     if (targetSide.isCenter) {
+      // TODO also need to consider move tab group into (new/existing) tab group => merge both
       throw UnimplementedError();
       /*
       // x) into tab group
@@ -254,7 +268,11 @@ class MondrianTree {
       }
     }
 
-    if (!isReorderInSameParent) {
+    if (tabIndexIfAny != null) {
+      // TODO skip for now
+      // will need to (1) remove from tab children
+      // (2) remove tab if that was the last child
+    } else if (!isReorderInSameParent) {
       // 2) remove
 
       if (sourcePathToParent.isEmpty) {

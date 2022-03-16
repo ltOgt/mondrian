@@ -170,6 +170,8 @@ moving a tab out still requires a special case for the removal
 moving a tab in still requires a special case for the pos.center (dropping on the tab bar can also just trigger the same call with pos.center)
 
 
+SHOULD also be able to use a secondary internal CircleId for the regular leafs to distinguish different instances
+will need to check if a tab already has that leaf and simply remove the dropped one without adding it to the list if so
 
 
 */
