@@ -245,8 +245,8 @@ class MondrianTree {
                 sourcePathToParent[targetPath.length - 1] += 1;
               }
             }
-          } else if (isTabMoving && sourcePathToParent.isEmpty && targetPathToParent.isEmpty) {
-            // SPECIAL CASE: when moving out from a tab, this can happen at top level (both target and source are in top level)
+          } else if (isTabMoving && (sourcePathToParent.length == targetPathToParent.length)) {
+            // SPECIAL CASE: when moving out from a tab, this can happen in the same level
             // _____________ still need to increment path since can move out of tab group to infront of tab group
             // source path here is the path to the tab group
             if (sourcePath[targetPath.length - 1] > targetPath.last) {
