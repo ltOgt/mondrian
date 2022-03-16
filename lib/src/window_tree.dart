@@ -100,84 +100,74 @@ class MondrianTree {
     // TODO: actually, checking for minumum size in mondrian does not make much sense, need to check for minimum fraction instead
     // TODO: depending on the min fraction, this also imposes a limit on how many children a branch can have
 
+    // ============================================================================================================ <
+    // TODO: only unhandled center drop case is if the resulting tabLeaf becomes the new root
+    // ============================================================================================================ >
+
     // 1) insert
     if (targetSide.isCenter) {
-      // TODO also need to consider move tab group into (new/existing) tab group => merge both
-      throw UnimplementedError();
-      /*
       // x) into tab group
       _tree = _tree.updatePath(targetPathToParent, (parent) {
         (parent as MondrianTreeBranch);
         final children = parent.children;
 
-        // Must be a leaf, since can only drop onto leafs
+        // Must be a leaf, since can only drop onto leafs (this includes the tab leaf)
         final target = children[targetChildIndex] as MondrianTreeLeaf;
+        late final MondrianTreeTabLeaf newTarget;
 
-        if (parent.isTabbed) {
-          // If the parent is already in tabbed mode => add to parents tab group
+        // if the source is also a tab leaf, we must extract its tabs and join them
+        final sourceIds = (sourceNode is MondrianTreeTabLeaf) //
+            ? sourceNode.tabs
+            : [sourceNode.id];
+        // if the source is also a tab leaf, we want to honor the active tab
+        final sourceActiveTabOffset = (sourceNode is MondrianTreeTabLeaf) //
+            ? sourceNode.activeTabIndex
+            : 0;
 
-          // NOTE: it is guaranteed that the source can not already be in the same parent:
-          // moving the source will mean that the tab group does not get the drop overlay (only the tab reorder overlay)
-          // // TODO make sure of this, ALSO need to change focus to the moving tab if it is moved without already having focus
-
-          // TODO Splitting the targets fraction with the source might not be a good idea:
-          // _ the diminishing fraction is not visible while in tab mode, if multiple sources are dropped onto the same target over and over again, it will shrink and shirnk
-          final childrenWithNew = [
-            for (final child in children)
-              if (child == target) ...[
-                target.updateFraction(target.fraction * 0.5),
-                sourceNode.updateFraction(target.fraction * 0.5),
+        if (target is MondrianTreeTabLeaf) {
+          // If the target is already tabbed leaf => add to tabs
+          final newTabs = [
+            for (int i = 0; i < target.tabs.length; i++) ...[
+              if (i == target.activeTabIndex) ...[
+                target.activeTab,
+                ...sourceIds,
               ] else ...[
-                child,
-              ]
+                target.tabs[i],
+              ],
+            ],
           ];
 
-          return MondrianTreeBranch(
-            fraction: parent.fraction,
-            children: childrenWithNew,
-            // make newly dropped child focused
-            tabFocusIndex: targetChildIndex + 1,
+          // TODO, currently can only drop to the right of the active index, will need to implement resorting of tabs (compare vscode)
+          newTarget = target.copyWith(
+            tabs: newTabs,
+            activeTabIndex: target.activeTabIndex + 1 + sourceActiveTabOffset,
           );
         } else {
-          // If Parent is not already tabbed => replace target leaf with a new branch in tabbed mode.
-
-          // check if the source is already in the same parent, if so we can just quickly remove it here to skip the removal phase later
-          int sourceInTargetsParent =
-              parent.children.indexWhere((e) => (e is MondrianTreeLeaf && e.tabs == sourceNode.tabs));
-          if (sourceInTargetsParent != -1) {
-            // Means we dont have to do the removal step later
-            isReorderInSameParent = true;
-          }
-          final sourceFractionIfRemoved = (isReorderInSameParent ? sourceNode.fraction : 0);
-
-          final childrenPotentiallyWithRemovedSource = <MondrianTreeNodeAbst>[
-            for (int i = 0; i < children.length; i++)
-              if (i != sourceInTargetsParent) // skip source if present
-                if (i == targetChildIndex) ...[
-                  MondrianTreeBranch(
-                    fraction: target.fraction + sourceFractionIfRemoved,
-                    children: [
-                      // TODO rename "update" to "copyWith"
-                      target.updateFraction(.5),
-                      sourceNode.updateFraction(.5),
-                    ],
-                    // make newly dropped child focused
-                    tabFocusIndex: 1,
-                  )
-                ] else ...[
-                  children[i],
-                ]
-          ];
-
-          // insert children back into parent
-          return MondrianTreeBranch(
-            fraction: parent.fraction,
-            children: childrenPotentiallyWithRemovedSource,
-            tabFocusIndex: null,
+          // If target is not already tabbed => replace target leaf with a tab leaf
+          newTarget = MondrianTreeTabLeaf(
+            fraction: target.fraction,
+            tabs: [
+              target.id,
+              ...sourceIds,
+            ],
+            activeTabIndex: 1 + sourceActiveTabOffset,
           );
         }
+
+        // TODO replace all of these with copyWith
+        return MondrianTreeBranch(
+          fraction: parent.fraction,
+          children: [
+            for (int i = 0; i < children.length; i++) ...[
+              if (i == targetChildIndex) ...[
+                newTarget,
+              ] else ...[
+                children[i],
+              ]
+            ]
+          ],
+        );
       });
-      */
     } else {
       //  a) _
       //    -- same axis
