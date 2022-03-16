@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
@@ -68,11 +70,14 @@ class MondrianTree {
     var _tree = this;
     var _rootAxis = rootAxis;
 
+    final bool isTabMoving = (tabIndexIfAny != null);
+
     final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
-    final _sourceNode = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
-    final sourceNode = (tabIndexIfAny == null) //
-        ? _sourceNode
-        : MondrianTreeLeaf(id: (_sourceNode as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
+    final _sourceNodeOrTabGroup = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
+    final sourceNode = !isTabMoving //
+        ? _sourceNodeOrTabGroup
+        : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
+
     // TODO might be possible to instead switch over the subtype directly
     // ____ assuming that the the dragged tab will be set as the active one before entering here, the active node can be taken from the _sourceNode directly
     // if (false) {
@@ -196,6 +201,7 @@ class MondrianTree {
             final targetChild = branch.children[i];
 
             // Skip if the sourceNode is already present in the targets parent (i.e. reorder inside of parent)
+            // NOTE: this can never happen when moving a tab, since the leafId is not directly in the branch
             if (i == sourceInTargetsParent) {
               continue;
             }
@@ -239,6 +245,13 @@ class MondrianTree {
                 sourcePathToParent[targetPath.length - 1] += 1;
               }
             }
+          } else if (isTabMoving && sourcePathToParent.isEmpty && targetPathToParent.isEmpty) {
+            // SPECIAL CASE: when moving out from a tab, this can happen at top level (both target and source are in top level)
+            // _____________ still need to increment path since can move out of tab group to infront of tab group
+            // source path here is the path to the tab group
+            if (sourcePath[targetPath.length - 1] > targetPath.last) {
+              sourcePath[targetPath.length - 1] += 1;
+            }
           }
 
           return MondrianTreeBranch(
@@ -268,22 +281,52 @@ class MondrianTree {
       }
     }
 
+    // true if actually is leaf, false if is not a leaf
+    bool skipRemoveBecauseIsTabLeafThatIsNotYetEmpty = isTabMoving;
     if (tabIndexIfAny != null) {
       // TODO skip for now
       // will need to (1) remove from tab children
+      _tree = _tree.updatePath(sourcePath, (tabLeaf) {
+        tabLeaf as MondrianTreeTabLeaf;
+
+        final tabsWithoutMoved = [
+          for (int i = 0; i < tabLeaf.tabs.length; i++)
+            if (i != tabIndexIfAny) tabLeaf.tabs[i]
+        ];
+
+        // TODO consider simply returning an actual node once the length hits one; could then skip the removal part again
+        if (tabsWithoutMoved.isEmpty) {
+          // return placeholder leaf that must be removed in next step
+          skipRemoveBecauseIsTabLeafThatIsNotYetEmpty = false;
+          return MondrianTreeLeaf(id: tabLeaf.id, fraction: tabLeaf.fraction);
+        }
+
+        return tabLeaf.copyWith(
+          tabs: tabsWithoutMoved,
+          activeTabIndex: max(0, tabLeaf.activeTabIndex - 1),
+        );
+      });
       // (2) remove tab if that was the last child
-    } else if (!isReorderInSameParent) {
+    }
+
+    // if we moved a tab, and the tab group is now empty, we must switch back to the tab group instead of the created sourceNode
+    // (see above at sourceNode declaration)
+    final sourceNodeForRemove = (isTabMoving && !skipRemoveBecauseIsTabLeafThatIsNotYetEmpty) //
+        ? _sourceNodeOrTabGroup
+        : sourceNode;
+
+    if (!isReorderInSameParent && !skipRemoveBecauseIsTabLeafThatIsNotYetEmpty) {
       // 2) remove
 
       if (sourcePathToParent.isEmpty) {
         _tree = _tree.updatePath(sourcePathToParent, (root) {
           // Parent is root node
           (root as MondrianTreeBranch);
-          assert(root.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
+          assert(root.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNodeForRemove.id));
 
           // ------------------------------------------------------------------------------------------------
           // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
-          final removedFractionToDistribute = sourceNode.fraction / (root.children.length - 1);
+          final removedFractionToDistribute = sourceNodeForRemove.fraction / (root.children.length - 1);
 
           // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
           // List<MondrianTreeNodeAbst> rootChildrenWithoutSourceNode = [
@@ -295,7 +338,7 @@ class MondrianTree {
           // ];
           List<MondrianNodeAbst> rootChildrenWithoutSourceNode = [];
           for (final child in root.children) {
-            if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
+            if (child is MondrianTreeLeaf && child.id == sourceNodeForRemove.id) {
               // skip the source to remove it
               continue;
             }
@@ -354,11 +397,11 @@ class MondrianTree {
         _tree = _tree.updatePath(sourcePathToParentsParent, (parentsParent) {
           (parentsParent as MondrianTreeBranch);
           final parent = parentsParent.children[sourcePathToParentIndex] as MondrianTreeBranch;
-          assert(parent.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
+          assert(parent.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNodeForRemove.id));
 
           // ------------------------------------------------------------------------------------------------
           // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
-          final removedFractionToDistribute = sourceNode.fraction / (parent.children.length - 1);
+          final removedFractionToDistribute = sourceNodeForRemove.fraction / (parent.children.length - 1);
 
           // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
           // List<MondrianTreeNodeAbst> parentChildrenWithoutSourceNode = [
@@ -370,7 +413,7 @@ class MondrianTree {
           // ];
           List<MondrianNodeAbst> parentChildrenWithoutSourceNode = [];
           for (final child in parent.children) {
-            if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
+            if (child is MondrianTreeLeaf && child.id == sourceNodeForRemove.id) {
               // Skip source child
               continue;
             }
@@ -416,10 +459,10 @@ class MondrianTree {
           // IF THE ONLY CHILD IS A LEAF, USE PARENT FRACTION => DONE
           if (onlyChild is MondrianTreeLeaf) {
             // replace parent with only child
-            final parentReplacement = MondrianTreeLeaf(
-              id: onlyChild.id,
-              fraction: parent.fraction,
+            final parentReplacement = onlyChild.updateFraction(
+              parent.fraction,
             );
+
             final replacedParentInsideParentsParent = parentsParent.children;
             replacedParentInsideParentsParent[sourcePathToParentIndex] = parentReplacement;
 
