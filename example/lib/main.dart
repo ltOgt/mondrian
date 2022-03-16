@@ -46,6 +46,11 @@ class _MyAppState extends State<MyApp> {
               this.tree = tree;
             });
           },
+          onTabChange: (tree) {
+            setState(() {
+              this.tree = tree;
+            });
+          },
         ),
       ),
     );

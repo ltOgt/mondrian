@@ -62,6 +62,8 @@ class MondrianTree {
     required MondrianTreePath sourcePath,
     required MondrianTreePath targetPath,
     required MondrianMoveTargetDropPosition targetSide,
+    // this is needed on tab move, since the sourcePath still points to the parent (the tab leaf)
+    required int? tabIndexIfAny,
   }) {
     var _tree = this;
     var _rootAxis = rootAxis;

@@ -33,11 +33,13 @@ class MondrianWidget extends StatefulWidget {
     required this.tree,
     required this.onMoveDone,
     required this.onResizeDone,
+    required this.onTabChange,
   }) : super(key: key);
 
   final MondrianTree tree;
   final void Function(MondrianTree tree) onResizeDone;
   final void Function(MondrianTree tree) onMoveDone;
+  final void Function(MondrianTree tree) onTabChange;
 
   @override
   State<MondrianWidget> createState() => MondrianWidgetState();
@@ -46,6 +48,7 @@ class MondrianWidget extends StatefulWidget {
 class MondrianWidgetState extends State<MondrianWidget> {
   MondrianTreeLeafId? movingId;
   List<int>? lastMovingPath;
+  int? lastMovingTabIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +96,8 @@ class MondrianWidgetState extends State<MondrianWidget> {
                         ),
                         child: GestureDetector(
                           onTap: () {
-                            // TODO consider adding a new method for onTabSwitch or joining move and resize to onTreeChanged
-                            widget.onMoveDone(
+                            // TODO consider joining with move and resize to onTreeChanged
+                            widget.onTabChange(
                               widget.tree.updatePath(leafPath, (_tabLeaf) {
                                 _tabLeaf as MondrianTreeTabLeaf;
                                 return _tabLeaf.copyWith(activeTabIndex: i);
@@ -118,7 +121,14 @@ class MondrianWidgetState extends State<MondrianWidget> {
                         onMoveStart: () {
                           movingId = tabLeaf.tabs[i];
                           lastMovingPath = [...leafPath, i]; // ADD TAB INDEX TO PATH
+                          lastMovingTabIndex = i;
                           setState(() {});
+                          widget.onTabChange(
+                            widget.tree.updatePath(leafPath, (_tabLeaf) {
+                              _tabLeaf as MondrianTreeTabLeaf;
+                              return _tabLeaf.copyWith(activeTabIndex: i);
+                            }),
+                          );
                         },
                         onMoveUpdate: (d) {},
                       ),
@@ -160,13 +170,14 @@ class MondrianWidgetState extends State<MondrianWidget> {
               onDrop: (pos) {
                 // TODO adjust source tab and potential destination tab
                 // TODO also listen for pos == center
-                // widget.onMoveDone(
-                //   widget.tree.moveLeaf(
-                //     sourcePath: lastMovingPath!,
-                //     targetPath: leafPath,
-                //     targetSide: pos,
-                //   ),
-                // );
+                widget.onMoveDone(
+                  widget.tree.moveLeaf(
+                    sourcePath: lastMovingPath!,
+                    targetPath: leafPath,
+                    targetSide: pos,
+                    tabIndexIfAny: lastMovingTabIndex,
+                  ),
+                );
               },
               isActive: movingId != null && movingId != leaf.id && !tabLeaf.tabs.contains(movingId),
               target: Container(
@@ -204,6 +215,7 @@ class MondrianWidgetState extends State<MondrianWidget> {
           onMoveStart: () {
             movingId = leaf.id;
             lastMovingPath = leafPath;
+            lastMovingTabIndex = null;
             setState(() {});
           },
           onMoveUpdate: (d) {},
@@ -216,6 +228,7 @@ class MondrianWidgetState extends State<MondrianWidget> {
                   sourcePath: lastMovingPath!,
                   targetPath: leafPath,
                   targetSide: pos,
+                  tabIndexIfAny: lastMovingTabIndex,
                 ),
               );
             },
