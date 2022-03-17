@@ -79,7 +79,6 @@ class MondrianWidgetState extends State<MondrianWidget> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Tab header
-          // TODO must be scrollable if to long
           SizedBox(
             height: 20,
             child: LayoutBuilder(builder: (context, constraints) {
@@ -169,8 +168,6 @@ class MondrianWidgetState extends State<MondrianWidget> {
           Expanded(
             child: WindowMoveTarget(
               onDrop: (pos) {
-                // TODO adjust source tab and potential destination tab
-                // TODO also listen for pos == center
                 widget.onMoveDone(
                   widget.tree.moveLeaf(
                     sourcePath: lastMovingPath!,
@@ -180,7 +177,7 @@ class MondrianWidgetState extends State<MondrianWidget> {
                   ),
                 );
               },
-              isActive: movingId != null && movingId != leaf.id && !tabLeaf.tabs.contains(movingId),
+              isActive: movingId != null && movingId != leaf.id,
               target: Container(
                 color: Colors.red,
               ),
