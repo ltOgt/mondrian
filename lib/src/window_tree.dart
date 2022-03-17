@@ -78,16 +78,8 @@ class MondrianTree {
         ? _sourceNodeOrTabGroup
         : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
 
-    // TODO might be possible to instead switch over the subtype directly
-    // ____ assuming that the the dragged tab will be set as the active one before entering here, the active node can be taken from the _sourceNode directly
-    // if (false) {
-    //   final _sourceNode_ = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
-    //   if (_sourceNode_ is MondrianTreeTabLeaf) {
-    //     final sourceNode_ = MondrianTreeLeaf(id: (_sourceNode as MondrianTreeTabLeaf).activeTab, fraction: 0);
-    //   }
-    // }
-    // ____ in this case, we would not need the "tabIndexIfAny" parameter at all
-    // SSSS this will not work because than we cant distinguish between "active node moved" and "tab group moved"
+
+    final sourcePathToParentBranch = sourcePath.sublist(0, sourcePath.length - 1);
 
     final targetPathToParent = targetPath.sublist(0, targetPath.length - 1);
     final targetChildIndex = targetPath.last;
@@ -227,15 +219,16 @@ class MondrianTree {
           // _ _ _ => source is now at [0,1]
           // _ _ _ => source old parent is now at [0,2] instead of [0,1]
           // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
-          if (sourcePathToParent.length > targetPathToParent.length) {
-            final potentiallySharedParentPath = sourcePathToParent.sublist(0, targetPathToParent.length);
+
+          if (sourcePathToParentBranch.length > targetPathToParent.length) {
+            final potentiallySharedParentPath = sourcePathToParentBranch.sublist(0, targetPathToParent.length);
             if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
               // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
               if (sourcePath[targetPath.length - 1] > targetPath.last) {
-                sourcePathToParent[targetPath.length - 1] += 1;
+                sourcePathToParentBranch[targetPath.length - 1] += 1;
               }
             }
-          } else if (isTabMoving && (sourcePathToParent.length == targetPathToParent.length)) {
+          } else if (isTabMoving && (sourcePathToParentBranch.length == targetPathToParent.length)) {
             // SPECIAL CASE: when moving out from a tab, this can happen in the same level
             // _____________ still need to increment path since can move out of tab group to infront of tab group
             // source path here is the path to the tab group
@@ -301,8 +294,8 @@ class MondrianTree {
     } else if (!isReorderInSameParent) {
       // 2) remove
 
-      if (sourcePathToParent.isEmpty) {
-        _tree = _tree.updatePath(sourcePathToParent, (root) {
+      if (sourcePathToParentBranch.isEmpty) {
+        _tree = _tree.updatePath(sourcePathToParentBranch, (root) {
           // Parent is root node
           (root as MondrianTreeBranch);
           assert(root.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
@@ -372,8 +365,8 @@ class MondrianTree {
           throw "Unknown node type: ${onlyChild.runtimeType}";
         });
       } else {
-        final sourcePathToParentsParent = sourcePathToParent.sublist(0, sourcePathToParent.length - 1);
-        final sourcePathToParentIndex = sourcePathToParent.last;
+        final sourcePathToParentsParent = sourcePathToParentBranch.sublist(0, sourcePathToParentBranch.length - 1);
+        final sourcePathToParentIndex = sourcePathToParentBranch.last;
 
         _tree = _tree.updatePath(sourcePathToParentsParent, (parentsParent) {
           (parentsParent as MondrianTreeBranch);
