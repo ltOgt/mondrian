@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:mondrian/mondrian.dart';
 
 class WindowMoveHandle extends StatefulWidget {
   const WindowMoveHandle({
@@ -103,6 +104,45 @@ extension WindowMoveTargetDropPositionX on MondrianMoveTargetDropPosition {
   bool get isCenter => this == MondrianMoveTargetDropPosition.center;
   bool get isRight => this == MondrianMoveTargetDropPosition.right;
   bool get isBottom => this == MondrianMoveTargetDropPosition.bottom;
+
+  MondrianAxis? get asAxis {
+    switch (this) {
+      case MondrianMoveTargetDropPosition.center:
+        return null;
+      case MondrianMoveTargetDropPosition.left:
+      case MondrianMoveTargetDropPosition.right:
+        return MondrianAxis.horizontal;
+      case MondrianMoveTargetDropPosition.top:
+      case MondrianMoveTargetDropPosition.bottom:
+        return MondrianAxis.vertical;
+    }
+  }
+
+  bool? get isPositionBefore {
+    switch (this) {
+      case MondrianMoveTargetDropPosition.center:
+        return null;
+      case MondrianMoveTargetDropPosition.top:
+      case MondrianMoveTargetDropPosition.left:
+        return true;
+      case MondrianMoveTargetDropPosition.right:
+      case MondrianMoveTargetDropPosition.bottom:
+        return false;
+    }
+  }
+
+  bool? get isPositionAfter {
+    switch (this) {
+      case MondrianMoveTargetDropPosition.center:
+        return null;
+      case MondrianMoveTargetDropPosition.top:
+      case MondrianMoveTargetDropPosition.left:
+        return false;
+      case MondrianMoveTargetDropPosition.right:
+      case MondrianMoveTargetDropPosition.bottom:
+        return true;
+    }
+  }
 }
 
 class WindowMoveTargetMetaData {
