@@ -72,12 +72,56 @@ class MondrianTree {
 
     final bool isTabMoving = (tabIndexIfAny != null);
 
-    final sourcePathToParent = sourcePath.sublist(0, sourcePath.length - 1);
+    assert(
+      sourcePath.isEmpty == targetPath.isEmpty,
+      "Paths can only be empty if moving tabs out from the root tab leaf. In that case both must be empty, in every other case neither may be empty",
+    );
+    assert(
+      sourcePath.isNotEmpty || isTabMoving,
+      "Paths can only be empty if moving tabs out from the root tab leaf.",
+    );
+
     final _sourceNodeOrTabGroup = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
     final sourceNode = !isTabMoving //
         ? _sourceNodeOrTabGroup
         : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
 
+    // CAN HAPPEN THAT ONLY A ROOT LEAF EXISTS
+    if (targetPath.isEmpty) {
+      if (targetSide.isCenter) return _tree;
+
+      final _rootNode = rootNode as MondrianTreeTabLeaf;
+
+      assert(
+        _rootNode.tabs.length > 1,
+        "Can not move tab below itself; ALSO: tabLeaf should not exist with only one tab",
+      );
+      final newActive = max(0, _rootNode.activeTabIndex - 1);
+
+      // IF SO JUST RETURN A NEW BRANCH
+      return MondrianTree(
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            if (targetSide.isLeft || targetSide.isTop) ...[
+              sourceNode.updateFraction(.5),
+            ],
+            _rootNode.copyWith(
+              fraction: .5,
+              activeTabIndex: newActive,
+              tabs: [
+                for (final tab in _rootNode.tabs)
+                  if (tab != sourceNode.id) tab
+              ],
+            ),
+            if (targetSide.isRight || targetSide.isBottom) ...[
+              sourceNode.updateFraction(.5),
+            ],
+          ],
+        ),
+        rootAxis: rootAxis == targetSide.asAxis ? rootAxis : rootAxis.next,
+      );
+    }
 
     final sourcePathToParentBranch = sourcePath.sublist(0, sourcePath.length - 1);
 
@@ -248,14 +292,24 @@ class MondrianTree {
         _tree = _tree.updatePath(targetPath, (node) {
           final leaf = node as MondrianTreeLeaf;
 
+          bool isBefore = (targetSide.isLeft || targetSide.isTop);
+
+          // When moving a tab out from the group into the new branch shared with the group,
+          // We must adjust the paths
+          if (isTabMoving && listEquals(targetPath, sourcePath)) {
+            int added = isBefore ? 1 : 0;
+            targetPath = [...targetPath, added];
+            sourcePath = [...sourcePath, added];
+          }
+
           return MondrianTreeBranch(
             fraction: leaf.fraction,
             children: [
-              if (targetSide.isLeft || targetSide.isTop) ...[
+              if (isBefore) ...[
                 sourceNode.updateFraction(0.5),
               ],
               leaf.updateFraction(0.5),
-              if (targetSide.isRight || targetSide.isBottom) ...[
+              if (!isBefore) ...[
                 sourceNode.updateFraction(0.5),
               ],
             ],
@@ -265,7 +319,6 @@ class MondrianTree {
     }
 
     // true if actually is leaf, false if is not a leaf
-
     if (isTabMoving) {
       // TODO skip for now
       // will need to (1) remove from tab children
