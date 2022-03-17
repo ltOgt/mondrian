@@ -358,10 +358,8 @@ class MondrianTree {
 
           // IF THE ONLY CHILD IS A LEAF, USE ROOT FRACTION => DONE
           if (onlyChild is MondrianTreeLeaf) {
-            return MondrianTreeLeaf(
-              fraction: root.fraction,
-              id: onlyChild.id,
-            );
+            // (can be a tab leaf too)
+            return onlyChild.updateFraction(root.fraction);
           }
 
           // IF THE ONLY CHILD IS A BRANCH, USE ROOT FRACTION => DONE
