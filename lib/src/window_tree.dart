@@ -263,13 +263,13 @@ class MondrianTree {
           // _ _ _ => source is now at [0,1]
           // _ _ _ => source old parent is now at [0,2] instead of [0,1]
           // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
-
           if (sourcePathToParentBranch.length > targetPathToParent.length) {
             final potentiallySharedParentPath = sourcePathToParentBranch.sublist(0, targetPathToParent.length);
             if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
               // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
               if (sourcePath[targetPath.length - 1] > targetPath.last) {
                 sourcePathToParentBranch[targetPath.length - 1] += 1;
+                sourcePath[targetPath.length - 1] += 1;
               }
             }
           } else if (isTabMoving && (sourcePathToParentBranch.length == targetPathToParent.length)) {
