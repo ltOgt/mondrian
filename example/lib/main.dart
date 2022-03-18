@@ -16,7 +16,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   var tree = k_tree;
 
-  WindowManagerLeafId? movingId;
+  MondrianTreeLeafId? movingId;
   List<int>? lastMovingPath;
 
   void toggleDebugPaint() {
@@ -34,7 +34,7 @@ class _MyAppState extends State<MyApp> {
           onPressed: toggleDebugPaint,
           child: const Icon(Icons.brush),
         ),
-        body: MondrianMoveable(
+        body: MondrianWidget(
           tree: tree,
           onMoveDone: (tree) {
             setState(() {
@@ -46,53 +46,63 @@ class _MyAppState extends State<MyApp> {
               this.tree = tree;
             });
           },
+          onTabChange: (tree) {
+            setState(() {
+              this.tree = tree;
+            });
+          },
         ),
       ),
     );
   }
 }
 
-const k_tree = WindowManagerTree(
-  rootAxis: WindowAxis.vertical,
-  rootNode: WindowManagerBranch(
+final k_tree = MondrianTree(
+  rootAxis: MondrianAxis.vertical,
+  rootNode: MondrianTreeBranch(
     fraction: 1,
     children: [
-      WindowManagerBranch(
+      MondrianTreeBranch(
         fraction: .7,
         children: [
-          WindowManagerLeaf(
+          MondrianTreeTabLeaf(
             fraction: .7,
-            id: WindowManagerLeafId("Big top left"),
+            tabs: const [
+              MondrianTreeLeafId("Tab Child 1"),
+              MondrianTreeLeafId("Tab Child 2"),
+              MondrianTreeLeafId("Tab Child 3"),
+            ],
+            activeTabIndex: 0,
           ),
-          WindowManagerBranch(
+          const MondrianTreeBranch(
             fraction: .3,
             children: [
-              WindowManagerLeaf(
+              MondrianTreeLeaf(
                 fraction: .5,
-                id: WindowManagerLeafId("Medium Top Right"),
+                id: MondrianTreeLeafId("Medium Top Right"),
               ),
-              WindowManagerLeaf(
+              MondrianTreeLeaf(
                 fraction: .5,
-                id: WindowManagerLeafId("Small Mid Right"),
+                id: MondrianTreeLeafId("Small Mid Right"),
               ),
             ],
           ),
         ],
       ),
-      WindowManagerBranch(
+      const MondrianTreeBranch(
         fraction: .3,
         children: [
-          WindowManagerLeaf(
+          MondrianTreeLeaf(
             fraction: .3,
-            id: WindowManagerLeafId("Bottom Left"),
+            id: MondrianTreeLeafId("Bottom Left"),
           ),
-          WindowManagerLeaf(
+          MondrianTreeLeaf(
             fraction: .3,
-            id: WindowManagerLeafId("Bottom Mid"),
+            id: MondrianTreeLeafId("Bottom Mid"),
           ),
-          WindowManagerLeaf(
+          MondrianTreeLeaf(
             fraction: .4,
-            id: WindowManagerLeafId("Bottom Right"),
+            id: MondrianTreeLeafId("Bottom Right"),
           ),
         ],
       )
@@ -115,7 +125,7 @@ class WindowExample extends StatelessWidget {
   final Function(DragUpdateDetails d) onMoveUpdate;
   final VoidCallback onMoveEnd;
   final bool isMoving;
-  final Function(WindowMoveTargetDropPosition position) onDrop;
+  final Function(MondrianMoveTargetDropPosition position) onDrop;
 
   @override
   Widget build(BuildContext context) {

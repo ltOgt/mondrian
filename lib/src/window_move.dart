@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:mondrian/mondrian.dart';
 
 class WindowMoveHandle extends StatefulWidget {
   const WindowMoveHandle({
@@ -89,7 +90,7 @@ class _WindowMoveHandleState extends State<WindowMoveHandle> {
   }
 }
 
-enum WindowMoveTargetDropPosition {
+enum MondrianMoveTargetDropPosition {
   top,
   left,
   center,
@@ -97,12 +98,51 @@ enum WindowMoveTargetDropPosition {
   bottom,
 }
 
-extension WindowMoveTargetDropPositionX on WindowMoveTargetDropPosition {
-  bool get isTop => this == WindowMoveTargetDropPosition.top;
-  bool get isLeft => this == WindowMoveTargetDropPosition.left;
-  bool get isCenter => this == WindowMoveTargetDropPosition.center;
-  bool get isRight => this == WindowMoveTargetDropPosition.right;
-  bool get isBottom => this == WindowMoveTargetDropPosition.bottom;
+extension WindowMoveTargetDropPositionX on MondrianMoveTargetDropPosition {
+  bool get isTop => this == MondrianMoveTargetDropPosition.top;
+  bool get isLeft => this == MondrianMoveTargetDropPosition.left;
+  bool get isCenter => this == MondrianMoveTargetDropPosition.center;
+  bool get isRight => this == MondrianMoveTargetDropPosition.right;
+  bool get isBottom => this == MondrianMoveTargetDropPosition.bottom;
+
+  MondrianAxis? get asAxis {
+    switch (this) {
+      case MondrianMoveTargetDropPosition.center:
+        return null;
+      case MondrianMoveTargetDropPosition.left:
+      case MondrianMoveTargetDropPosition.right:
+        return MondrianAxis.horizontal;
+      case MondrianMoveTargetDropPosition.top:
+      case MondrianMoveTargetDropPosition.bottom:
+        return MondrianAxis.vertical;
+    }
+  }
+
+  bool? get isPositionBefore {
+    switch (this) {
+      case MondrianMoveTargetDropPosition.center:
+        return null;
+      case MondrianMoveTargetDropPosition.top:
+      case MondrianMoveTargetDropPosition.left:
+        return true;
+      case MondrianMoveTargetDropPosition.right:
+      case MondrianMoveTargetDropPosition.bottom:
+        return false;
+    }
+  }
+
+  bool? get isPositionAfter {
+    switch (this) {
+      case MondrianMoveTargetDropPosition.center:
+        return null;
+      case MondrianMoveTargetDropPosition.top:
+      case MondrianMoveTargetDropPosition.left:
+        return false;
+      case MondrianMoveTargetDropPosition.right:
+      case MondrianMoveTargetDropPosition.bottom:
+        return true;
+    }
+  }
 }
 
 class WindowMoveTargetMetaData {
@@ -130,12 +170,12 @@ class WindowMoveTarget extends StatelessWidget {
   static const _targetSmall = 20.0;
   static const _targetGap = SizedBox.square(dimension: 5.0);
 
-  final Function(WindowMoveTargetDropPosition position) onDrop;
+  final Function(MondrianMoveTargetDropPosition position) onDrop;
 
   Widget _target({
     required double width,
     required double height,
-    required WindowMoveTargetDropPosition position,
+    required MondrianMoveTargetDropPosition position,
   }) =>
       MetaData(
         metaData: WindowMoveTargetMetaData(
@@ -165,7 +205,7 @@ class WindowMoveTarget extends StatelessWidget {
                   children: [
                     // TOP
                     _target(
-                      position: WindowMoveTargetDropPosition.top,
+                      position: MondrianMoveTargetDropPosition.top,
                       width: _targetLarge,
                       height: _targetSmall,
                     ),
@@ -176,21 +216,21 @@ class WindowMoveTarget extends StatelessWidget {
                       children: [
                         // LEFT
                         _target(
-                          position: WindowMoveTargetDropPosition.left,
+                          position: MondrianMoveTargetDropPosition.left,
                           width: _targetSmall,
                           height: _targetLarge,
                         ),
                         _targetGap,
                         // CENTER
                         _target(
-                          position: WindowMoveTargetDropPosition.center,
+                          position: MondrianMoveTargetDropPosition.center,
                           width: _targetLarge,
                           height: _targetLarge,
                         ),
                         _targetGap,
                         // RIGHT
                         _target(
-                          position: WindowMoveTargetDropPosition.right,
+                          position: MondrianMoveTargetDropPosition.right,
                           width: _targetSmall,
                           height: _targetLarge,
                         ),
@@ -199,7 +239,7 @@ class WindowMoveTarget extends StatelessWidget {
                     _targetGap,
                     // BOTTOM
                     _target(
-                      position: WindowMoveTargetDropPosition.bottom,
+                      position: MondrianMoveTargetDropPosition.bottom,
                       width: _targetLarge,
                       height: _targetSmall,
                     ),
