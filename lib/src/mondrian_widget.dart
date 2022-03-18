@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/widgets.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
@@ -71,12 +73,13 @@ class MondrianWidget extends StatefulWidget {
     required this.tree,
     required this.onUpdateTree,
     required this.buildLeaf,
-    required this.buildLeafBar,
+    this.buildLeafBar,
     this.leafBarHeight = 20,
     this.buildTabIndicator,
     this.buildTabBar,
     this.tabBarHeight = 20,
     this.tabBarMinOverhangWidth = 100,
+    this.tabIndicatorWidth = 100,
     this.buildMoveDragIndicator,
     this.resizeDraggerColor = const Color(0xFFAAAAFF),
     this.resizeDraggerWidth = 2,
@@ -108,7 +111,7 @@ class MondrianWidget extends StatefulWidget {
   final LeafBuilder buildLeaf;
 
   /// {@macro LeafBarBuilder}
-  final LeafBarBuilder buildLeafBar;
+  final LeafBarBuilder? buildLeafBar;
 
   /// The height imposed on [buildLeafBar].
   final double leafBarHeight;
@@ -132,6 +135,9 @@ class MondrianWidget extends StatefulWidget {
   ///
   /// This is needed since the entire tab container can be moved via this overhang.
   final double tabBarMinOverhangWidth;
+
+  /// The width imposed on [buildTabIndicator].
+  final double tabIndicatorWidth;
 
   /// {@macro MoveDragIndicatorBuilder}
   final MoveDragIndicatorBuilder? buildMoveDragIndicator;
@@ -165,7 +171,18 @@ class _MondrianWidgetState extends State<MondrianWidget> {
   int? _lastMovingTabIndex;
 
   // =========================================================================== RESIZE
-  void _onResize(MondrianTreePath pathToParent, double newFraction, int index) {}
+  void _onResize(
+    MondrianTreePath pathToParent,
+    double newFraction,
+    int index,
+  ) {
+    widget.onUpdateTree(widget.tree.updatePath(pathToParent, (node) {
+      return (node as MondrianTreeBranch).updateChildFraction(
+        index: index,
+        newFraction: newFraction,
+      );
+    }));
+  }
 
   // =========================================================================== BUILD
 
@@ -221,12 +238,14 @@ class _MondrianWidgetState extends State<MondrianWidget> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Tab header
-          SizedBox(
-            height: widget.tabBarHeight,
-            child: LayoutBuilder(builder: (context, constraints) {
-              return SingleChildScrollView(
+          LayoutBuilder(builder: (context, constraints) {
+            return SizedBox(
+              height: widget.tabBarHeight,
+              width: constraints.maxWidth,
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
+                  mainAxisSize: MainAxisSize.max,
                   children: [
                     // TABS ----------------------------------------------------
                     for (int i = 0; i < tabLeaf.tabs.length; i++) ...[
@@ -236,7 +255,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                           onTap: () => _setActiveTab(leafPath, i),
                           child: widget.buildTabIndicator?.call(leafPath, i) ??
                               _buildDefaultTabIndicator(
-                                tabLeaf.id,
+                                tabLeaf.tabs[i],
                                 (i == tabLeaf.activeTabIndex),
                               ),
                         ),
@@ -251,7 +270,13 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                     // TAB OVERHANG --------------------------------------------
                     WindowMoveHandle(
                       dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
-                      child: widget.buildTabBar?.call(leafPath) ?? _buildDefaultTabOverhang(),
+                      child: SizedBox(
+                        width: max(
+                          constraints.maxWidth - (tabLeaf.tabs.length * widget.tabIndicatorWidth),
+                          widget.tabBarMinOverhangWidth,
+                        ),
+                        child: widget.buildTabBar?.call(leafPath) ?? _buildDefaultTabOverhang(),
+                      ),
                       onMoveEnd: _onMoveEnd,
                       onMoveStart: () {
                         _onMoveStart(leafNode.id, leafPath, null);
@@ -260,9 +285,9 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                     ),
                   ],
                 ),
-              );
-            }),
-          ),
+              ),
+            );
+          }),
           // ACTUAL WIDGET -----------------------------------------------------
           Expanded(
             child: WindowMoveTarget(
@@ -272,7 +297,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
               target: Container(
                 color: const Color(0xFFFF2222),
               ),
-              child: widget.buildLeaf(leafPath, null),
+              child: widget.buildLeaf(leafPath, leafNode.activeTabIndex),
             ),
           ),
         ],
@@ -288,7 +313,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
           height: widget.leafBarHeight,
           child: WindowMoveHandle(
             dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
-            child: widget.buildLeafBar(leafPath),
+            child: widget.buildLeafBar?.call(leafPath) ?? _buildDefaultLeafBar(leafNode.id),
             onMoveEnd: _onMoveEnd,
             onMoveStart: () => _onMoveStart(leafNode.id, leafPath, null),
             onMoveUpdate: (_) {},
@@ -344,6 +369,12 @@ class _MondrianWidgetState extends State<MondrianWidget> {
         height: widget.tabBarHeight,
         width: widget.tabBarMinOverhangWidth, // use the same width
         color: const Color(0xFF000000),
+      );
+
+  Widget _buildDefaultLeafBar(MondrianTreeLeafId id) => Container(
+        height: widget.leafBarHeight,
+        color: const Color(0xFF000000),
+        child: AutoSizeText(text: id.value),
       );
 }
 
