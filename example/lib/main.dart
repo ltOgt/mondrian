@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
+import 'package:mondrian/src/debug.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,20 +37,23 @@ class _MyAppState extends State<MyApp> {
         ),
         body: MondrianWidget(
           tree: tree,
-          onMoveDone: (tree) {
+          onUpdateTree: (tree) {
             setState(() {
               this.tree = tree;
             });
           },
-          onResizeDone: (tree) {
-            setState(() {
-              this.tree = tree;
-            });
-          },
-          onTabChange: (tree) {
-            setState(() {
-              this.tree = tree;
-            });
+          buildLeaf: (path, tabIndex) {
+            final _leaf = (tree.extractPath(path) as MondrianTreeLeaf);
+
+            final leafId = tabIndex == null //
+                ? _leaf.id
+                : (_leaf as MondrianTreeTabLeaf).tabs[tabIndex];
+
+            return Center(
+              child: AutoSizeText(
+                text: leafId.value,
+              ),
+            );
           },
         ),
       ),
