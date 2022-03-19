@@ -312,7 +312,8 @@ class MondrianTreeManipulationService {
           // . source path here is the path to the tab group
           // . since source and target can be the same, we must check for ">=" instead of "="
           // _ § Moving tab from inside tab leaf [0,0] to the left of that same tab leaf at [0,0]
-          if (sourcePath[targetPath.length - 1] >= targetPath.last) {
+          if (sourcePath[targetPath.length - 1] >= targetPath.last && targetSide.isPositionBefore!) {
+            // TODO!!!!!!!!!!
             sourcePath[targetPath.length - 1] += 1;
           }
         }

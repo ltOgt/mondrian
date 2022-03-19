@@ -520,6 +520,57 @@ void main() {
       expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
+    test("tab after its tabgroup in same branch", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeTabLeaf(
+              fraction: .5,
+              activeTabIndex: 1,
+              tabs: const [
+                MondrianTreeLeafId("Tab A-1"),
+                MondrianTreeLeafId("Tab A-2"),
+                MondrianTreeLeafId("Tab A-3"),
+              ],
+            ),
+            const MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+          ],
+        ),
+      );
+
+      // TabLeaf can not be const because of internal generated id
+      final expectedTreeAfterUpdate = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeTabLeaf(
+              fraction: .25,
+              activeTabIndex: 0,
+              tabs: const [
+                MondrianTreeLeafId("Tab A-1"),
+                MondrianTreeLeafId("Tab A-3"),
+              ],
+            ),
+            const MondrianTreeLeaf(id: MondrianTreeLeafId("Tab A-2"), fraction: .25),
+            const MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.moveLeaf(
+        sourcePath: [0],
+        targetPath: [0],
+        tabIndexIfAny: 1,
+        targetSide: MondrianLeafMoveTargetDropPosition.right,
+      );
+
+      // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
+    });
+
     test("tab before its tabgroup in same branch with no remaining tabs causes tab group to dissolve", () {
       final initialTree = MondrianTree(
         rootAxis: MondrianAxis.horizontal,
