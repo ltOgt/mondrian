@@ -504,7 +504,7 @@ class MondrianTreeManipulationService {
               children: parentChildrenWithoutSourceNode,
             );
 
-            final newParentInsideParentsParent = parentsParent.children;
+            final newParentInsideParentsParent = [...parentsParent.children];
             newParentInsideParentsParent[sourcePathToParentIndex] = newParent;
 
             // PARENTs PARENT (no change done here)
@@ -525,7 +525,8 @@ class MondrianTreeManipulationService {
               parent.fraction,
             );
 
-            final replacedParentInsideParentsParent = parentsParent.children;
+            // TODO uncomment fix after test is written
+            final replacedParentInsideParentsParent = [...parentsParent.children];
             replacedParentInsideParentsParent[sourcePathToParentIndex] = parentReplacement;
 
             return MondrianTreeBranch(

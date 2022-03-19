@@ -762,6 +762,72 @@ void main() {
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
       expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
+
+    test("moving leaf out of 2-group dissolves 2-group and merges last member with parent", () {
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeBranch(
+              fraction: .6,
+              children: [
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 1 Child 1"), fraction: .5),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 1 Child 2"), fraction: .5),
+              ],
+            ),
+            MondrianTreeBranch(
+              fraction: .4,
+              children: [
+                MondrianTreeBranch(
+                  fraction: .7,
+                  children: [
+                    MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 2-1 Child 1"), fraction: .5),
+                    MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 2-1 Child 2"), fraction: .5),
+                  ],
+                ),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 2 Child 2"), fraction: .3),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      // TabLeaf can not be const because of internal generated id
+      const expectedTreeAfterUpdate = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeBranch(
+              fraction: .6,
+              children: [
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 1 Child 1"), fraction: .5),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 1 Child 2"), fraction: .25),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 2-1 Child 2"), fraction: .25),
+              ],
+            ),
+            MondrianTreeBranch(
+              fraction: .4,
+              children: [
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 2-1 Child 1"), fraction: .7),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Branch 2 Child 2"), fraction: .3),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.moveLeaf(
+        sourcePath: [1, 0, 1],
+        targetPath: [0, 1],
+        tabIndexIfAny: null,
+        targetSide: MondrianLeafMoveTargetDropPosition.right,
+      );
+
+      // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
+    });
   });
 
   group("Create Leaf", () {
