@@ -376,6 +376,62 @@ void main() {
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
       expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
     });
+
+    test("tab group into tab group", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeTabLeaf(
+              fraction: .5,
+              activeTabIndex: 1,
+              tabs: [
+                MondrianTreeLeafId("Tab A-1"),
+                MondrianTreeLeafId("Tab A-2"),
+                MondrianTreeLeafId("Tab A-3"),
+              ],
+            ),
+            MondrianTreeTabLeaf(
+              fraction: .5,
+              activeTabIndex: 1,
+              tabs: [
+                MondrianTreeLeafId("Tab B-1"),
+                MondrianTreeLeafId("Tab B-2"),
+                MondrianTreeLeafId("Tab B-3"),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      // TabLeaf can not be const because of internal generated id
+      final expectedTreeAfterUpdate = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 3,
+          tabs: [
+            MondrianTreeLeafId("Tab A-1"),
+            MondrianTreeLeafId("Tab A-2"),
+            MondrianTreeLeafId("Tab B-1"),
+            MondrianTreeLeafId("Tab B-2"),
+            MondrianTreeLeafId("Tab B-3"),
+            MondrianTreeLeafId("Tab A-3"),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.moveLeaf(
+        sourcePath: [1],
+        targetPath: [0],
+        tabIndexIfAny: null,
+        targetSide: MondrianLeafMoveTargetDropPosition.center,
+      );
+
+      // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
+      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+    });
   });
 
   test('Update Tree', () {
