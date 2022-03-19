@@ -314,4 +314,14 @@ class MondrianTreeBranch extends MondrianNodeAbst {
 
   @override
   String toString() => 'MondrianTreeBranch(fraction: $fraction, children: $children)';
+
+  MondrianTreeBranch copyWith({
+    double? fraction,
+    List<MondrianNodeAbst>? children,
+  }) {
+    return MondrianTreeBranch(
+      fraction: fraction ?? this.fraction,
+      children: children ?? this.children,
+    );
+  }
 }

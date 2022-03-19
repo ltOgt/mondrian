@@ -5,6 +5,44 @@ import 'package:mondrian/mondrian.dart';
 import 'package:mondrian/src/utils.dart';
 
 class MondrianTreeManipulationService {
+  /// Insert a [sourceLeaf] into the target [MondrianTreeLeaf] as a new tab.
+  ///
+  /// This insertion will happen after the currently active [MondrianTreeTabLeaf.activeTabIndex].
+  /// Iff the [targetLeaf] is not yet a [MondrianTreeTabLeaf],
+  /// a new tab leaf will be created with [targetLeaf] comming first, and [sourceLeaf] second.
+  ///
+  /// The returned [MondrianTreeTabLeaf] will have its [MondrianTreeTabLeaf.activeTabIndex] point to [sourceLeaf].
+  static MondrianTreeTabLeaf _addLeafToLeafAsTab({
+    required MondrianTreeLeaf targetLeaf,
+    required MondrianTreeLeaf sourceLeaf,
+  }) {
+    // if the source is also a tab leaf, we must extract its tabs and join them
+    final sourceIds = (sourceLeaf is MondrianTreeTabLeaf) //
+        ? sourceLeaf.tabs
+        : [sourceLeaf.id];
+    // if the source is also a tab leaf, we want to honor the active tab
+    final sourceActiveTabOffset = (sourceLeaf is MondrianTreeTabLeaf) //
+        ? sourceLeaf.activeTabIndex
+        : 0;
+
+    if (targetLeaf is! MondrianTreeTabLeaf) {
+      return MondrianTreeTabLeaf(
+        fraction: targetLeaf.fraction,
+        activeTabIndex: 1 + sourceActiveTabOffset,
+        tabs: [targetLeaf.id, ...sourceIds],
+      );
+    }
+
+    return targetLeaf.copyWith(
+      tabs: [
+        ...targetLeaf.tabs.sublist(0, targetLeaf.activeTabIndex + 1),
+        ...sourceIds,
+        ...targetLeaf.tabs.sublist(targetLeaf.activeTabIndex + 1, targetLeaf.tabs.length),
+      ],
+      activeTabIndex: targetLeaf.activeTabIndex + 1 + sourceActiveTabOffset,
+    );
+  }
+
   static MondrianTree moveLeaf({
     required MondrianTree tree,
     required MondrianTreePath sourcePath,
@@ -93,63 +131,19 @@ class MondrianTreeManipulationService {
       // x) into tab group
       _tree = _tree.updatePath(targetPathToParent, (parent) {
         (parent as MondrianTreeBranch);
-        final children = parent.children;
 
         // Must be a leaf, since can only drop onto leafs (this includes the tab leaf)
-        final target = children[targetChildIndex] as MondrianTreeLeaf;
-        late final MondrianTreeTabLeaf newTarget;
+        final targetLeaf = parent.children[targetChildIndex] as MondrianTreeLeaf;
+        final newTarget = _addLeafToLeafAsTab(
+          targetLeaf: targetLeaf,
+          sourceLeaf: sourceNode,
+        );
 
-        // if the source is also a tab leaf, we must extract its tabs and join them
-        final sourceIds = (sourceNode is MondrianTreeTabLeaf) //
-            ? sourceNode.tabs
-            : [sourceNode.id];
-        // if the source is also a tab leaf, we want to honor the active tab
-        final sourceActiveTabOffset = (sourceNode is MondrianTreeTabLeaf) //
-            ? sourceNode.activeTabIndex
-            : 0;
+        final newChildren = [...parent.children];
+        newChildren[targetChildIndex] = newTarget;
 
-        if (target is MondrianTreeTabLeaf) {
-          // If the target is already tabbed leaf => add to tabs
-          final newTabs = [
-            for (int i = 0; i < target.tabs.length; i++) ...[
-              if (i == target.activeTabIndex) ...[
-                target.activeTab,
-                ...sourceIds,
-              ] else ...[
-                target.tabs[i],
-              ],
-            ],
-          ];
-
-          // TODO, currently can only drop to the right of the active index, will need to implement resorting of tabs (compare vscode)
-          newTarget = target.copyWith(
-            tabs: newTabs,
-            activeTabIndex: target.activeTabIndex + 1 + sourceActiveTabOffset,
-          );
-        } else {
-          // If target is not already tabbed => replace target leaf with a tab leaf
-          newTarget = MondrianTreeTabLeaf(
-            fraction: target.fraction,
-            tabs: [
-              target.id,
-              ...sourceIds,
-            ],
-            activeTabIndex: 1 + sourceActiveTabOffset,
-          );
-        }
-
-        // TODO replace all of these with copyWith
-        return MondrianTreeBranch(
-          fraction: parent.fraction,
-          children: [
-            for (int i = 0; i < children.length; i++) ...[
-              if (i == targetChildIndex) ...[
-                newTarget,
-              ] else ...[
-                children[i],
-              ]
-            ]
-          ],
+        return parent.copyWith(
+          children: newChildren,
         );
       });
     } else {
