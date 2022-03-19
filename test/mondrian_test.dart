@@ -3,6 +3,71 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mondrian/mondrian.dart';
 
 void main() {
+  group("Path from Id", () {
+    const wantedId = MondrianTreeLeafId("Leaf 5");
+    const nonExistentId = MondrianTreeLeafId("Leaf Doe Not Exist");
+    const wantedTabId = MondrianTreeLeafId("Tab Id 2");
+
+    final tree = MondrianTree(
+      rootAxis: MondrianAxis.vertical,
+      rootNode: MondrianTreeBranch(
+        fraction: 1,
+        children: [
+          const MondrianTreeLeaf(fraction: .1, id: MondrianTreeLeafId("Leaf 0")),
+          const MondrianTreeBranch(
+            fraction: .4,
+            children: [
+              MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 1")),
+              MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 2")),
+            ],
+          ),
+          MondrianTreeBranch(
+            fraction: .5,
+            children: [
+              const MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 3")),
+              MondrianTreeBranch(
+                fraction: .5,
+                children: [
+                  const MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 4")),
+                  const MondrianTreeLeaf(fraction: .3, id: wantedId),
+                  MondrianTreeTabLeaf(
+                    fraction: .2,
+                    tabs: [
+                      const MondrianTreeLeafId("Tab Id 1"),
+                      wantedTabId,
+                    ],
+                    activeTabIndex: 0,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    test("Extract Leaf", () {
+      final wantedPath = tree.pathFromId(wantedId);
+
+      expect(wantedPath, isNotNull);
+      wantedPath!;
+      expect(wantedPath.path, equals([2, 1, 1]));
+      expect(wantedPath.tabIndexIfAny, isNull);
+    });
+    test("Extract Null for non existant", () {
+      final nonPath = tree.pathFromId(nonExistentId);
+      expect(nonPath, isNull);
+    });
+    test("Extract Tab", () {
+      final wantedTabPath = tree.pathFromId(wantedTabId);
+
+      expect(wantedTabPath, isNotNull);
+      wantedTabPath!;
+      expect(wantedTabPath.path, equals([2, 1, 2]));
+      expect(wantedTabPath.tabIndexIfAny, equals(1));
+    });
+  });
+
   group("Move Leaf", () {
     test("Axis switch on root move on other axis", () {
       const initialTree = MondrianTree(

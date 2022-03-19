@@ -494,5 +494,48 @@ class MondrianTreeManipulationService {
   static double _sumDistanceToOne(List<MondrianNodeAbst> list) =>
       (1.0 - list.fold<double>(0.0, (double acc, ele) => acc + ele.fraction)).abs();
 
+  /// Search the entire tree recursively until [id] has been found and its path constructed.
+  ///
+  /// Returns null if the id is not found.
+  ///
+  /// This can thus also be used to check for id containement.
+  static MondrianTreePathWithTabIndexIfAny? treePathFromId(MondrianTreeLeafId id, MondrianTree tree) {
+    return _treePathFromId(id, tree.rootNode, []);
+  }
 
+  static MondrianTreePathWithTabIndexIfAny? _treePathFromId(
+    MondrianTreeLeafId id,
+    MondrianNodeAbst node,
+    List<int> path,
+  ) {
+    if (node is MondrianTreeBranch) {
+      for (int i = 0; i < node.children.length; i++) {
+        final child = node.children[i];
+        final result = _treePathFromId(id, child, [...path, i]);
+        if (result != null) return result;
+      }
+      return null;
+}
+    if (node is MondrianTreeTabLeaf) {
+      for (int i = 0; i < node.tabs.length; i++) {
+        final tab = node.tabs[i];
+        if (tab == id) {
+          return MondrianTreePathWithTabIndexIfAny(
+            path: path,
+            tabIndexIfAny: i,
+          );
+        }
+      }
+      return null;
+    }
+    if (node is MondrianTreeLeaf) {
+      return (node.id != id) //
+          ? null
+          : MondrianTreePathWithTabIndexIfAny(
+              path: path,
+              tabIndexIfAny: null,
+            );
+    }
+    throw "Unknown type: ${node.runtimeType}";
+  }
 }
