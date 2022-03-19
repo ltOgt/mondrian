@@ -1,35 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
+
 import 'package:mondrian/mondrian.dart';
 import 'package:mondrian/src/utils.dart';
 
-enum MondrianAxis {
-  horizontal,
-  vertical,
-}
+// ============================================================================= TYPEDEF
 
-extension WindowAxisX on MondrianAxis {
-  MondrianAxis get previous => MondrianAxis.values[(index - 1) % MondrianAxis.values.length];
-  MondrianAxis get next => MondrianAxis.values[(index + 1) % MondrianAxis.values.length];
+typedef NodeUpdater = MondrianNodeAbst Function(MondrianNodeAbst node);
 
-  bool get isHorizontal => MondrianAxis.horizontal == this;
-  bool get isVertical => MondrianAxis.vertical == this;
-}
-
-/// The index for each child that must be passed to reach the destination node.
-typedef MondrianTreePath = List<int>;
-
-/// Container for [MondrianTreePath] with the extension of [tabIndexIfAny] which is non null if the path points to a tab inside a tab leaf
-// TODO consider using this object in other callbacks (e.g. for move)
-class MondrianTreePathWithTabIndexIfAny {
-  final MondrianTreePath path;
-  final int? tabIndexIfAny;
-
-  MondrianTreePathWithTabIndexIfAny({
-    required this.path,
-    required this.tabIndexIfAny,
-  });
-}
+// ============================================================================= TREE
 
 /// The tree of [MondrianNodeAbst]s specifying the partition of the window.
 class MondrianTree {
@@ -71,8 +50,6 @@ class MondrianTree {
     throw "Unknown type ${rootNode.runtimeType}";
   }
 
-  // TODO consider adding a method "leafPathFromId(WindowLeafId)" that searches the tree recursively, while building a path and returning it on match
-
   MondrianTree moveLeaf({
     required MondrianTreePath sourcePath,
     required MondrianTreePath targetPath,
@@ -92,17 +69,17 @@ class MondrianTree {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is MondrianTree && other.rootNode == rootNode;
+    return other is MondrianTree && other.rootNode == rootNode && other.rootAxis == rootAxis;
   }
 
   @override
-  int get hashCode => rootNode.hashCode;
+  int get hashCode => rootNode.hashCode ^ rootAxis.hashCode;
 
   @override
-  String toString() => 'MondrianTreeTree(rootNode: $rootNode)';
+  String toString() => 'MondrianTree(rootNode: $rootNode, rootAxis: $rootAxis)';
 }
 
-typedef NodeUpdater = MondrianNodeAbst Function(MondrianNodeAbst node);
+// ============================================================================= ABSTRACT BASE NODE
 
 /// A part of the [MondrianTree], either a [MondrianTreeBranch] or a [MondrianTreeLeaf].
 abstract class MondrianNodeAbst {
@@ -135,7 +112,9 @@ class MondrianTreeLeafId {
   String toString() => 'MondrianTreeLeafId(value: $value)';
 }
 
-/// Lead in the tree, represents a single widget.
+// ============================================================================= NODE - TREE LEAF
+
+/// Leaf in the tree, represents a single widget.
 ///
 /// Can be placed inside [MondrianTreeBranch].
 class MondrianTreeLeaf extends MondrianNodeAbst {
@@ -174,6 +153,19 @@ class MondrianTreeLeaf extends MondrianNodeAbst {
   String toString() => 'MondrianTreeLeaf(fraction: $fraction, id: $id)';
 }
 
+// ============================================================================= NODE - TREE LEAF - TAB LEAF
+
+// TODO extend WindowManagerLeafIdInternal instead once implemented
+class MondrianTreeTabLeafId extends MondrianTreeLeafId {
+  const MondrianTreeTabLeafId(String value) : super(value);
+}
+
+/// Leaf in the tree, represents a collection of [MondrianTreeLeafId]s.
+///
+/// Instead of being placed directly in the [MondrianTree],
+/// these leaf ids are instead placed inside tabs inside this [MondrianTreeTabLeaf].
+///
+/// Can be placed inside [MondrianTreeBranch].
 class MondrianTreeTabLeaf extends MondrianTreeLeaf {
   final int activeTabIndex;
   final List<MondrianTreeLeafId> tabs;
@@ -195,6 +187,8 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
     required int activeTabIndex,
   }) =>
       MondrianTreeTabLeaf._(
+        // Instead of exposing a "real" leaf id, a transient generated leaf id is used
+        // This is needed for moving the entire tab container, but is not of interest to the user of this package.
         id: MondrianTreeTabLeafId(_idGen.next.value),
         fraction: fraction,
         tabs: tabs,
@@ -224,10 +218,7 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
       );
 }
 
-// TODO extend WindowManagerLeafIdInternal instead once implemented
-class MondrianTreeTabLeafId extends MondrianTreeLeafId {
-  const MondrianTreeTabLeafId(String value) : super(value);
-}
+// ============================================================================= NODE - TREE BRANCH
 
 /// Row or Column inside the [MondrianTree].
 /// Can contain [MondrianTreeLeaf]s as well as further [MondrianTree]s.
