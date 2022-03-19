@@ -5,6 +5,28 @@ import 'package:mondrian/mondrian.dart';
 import 'package:mondrian/src/utils.dart';
 
 class MondrianTreeManipulationService {
+  /// Insert a [sourceLeaf] into the opposing axis as [targetLeaf],
+  /// either before ([isBefore]) or after.
+  ///
+  /// This will create a new [MondrianTreeBranch] containing both leafs,
+  /// each taking up half the space that [targetLeaf] took up before.
+  static MondrianTreeBranch _addLeafToLeafAsNewBranch({
+    required MondrianTreeLeaf targetLeaf,
+    required MondrianTreeLeaf sourceLeaf,
+    required bool isBefore,
+  }) {
+    final fractionOfNewBranch = targetLeaf.fraction;
+    const fractionOfEachChild = 0.5;
+
+    return MondrianTreeBranch(
+      fraction: fractionOfNewBranch,
+      children: [
+        if (isBefore) ...[sourceLeaf.updateFraction(fractionOfEachChild)],
+        targetLeaf.updateFraction(fractionOfEachChild),
+        if (!isBefore) ...[sourceLeaf.updateFraction(fractionOfEachChild)],
+      ],
+    );
+  }
 
   /// Insert a [sourceLeaf] into the same axis as a target [MondrianTreeLeaf].
   /// That leaf is identified by its [targetIndexInParent] inside its [targetParentBranch].
@@ -97,12 +119,15 @@ class MondrianTreeManipulationService {
       "Paths can only be empty if moving tabs out from the root tab leaf.",
     );
 
+    // CREATE <
+
     final _sourceNodeOrTabGroup = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
     final sourceNode = !isTabMoving //
         ? _sourceNodeOrTabGroup
         : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
 
     // CAN HAPPEN THAT ONLY A ROOT LEAF EXISTS
+    // TODO REFACTOR
     if (targetPath.isEmpty) {
       if (targetSide.isCenter) return _tree;
 
@@ -182,15 +207,15 @@ class MondrianTreeManipulationService {
     }
     // (1-B) INTO SAME AXIS ----------------------------------------------------
     else if (targetSide.asAxis == targetAxis) {
-        _tree = _tree.updatePath(targetPathToParent, (node) {
-          final branch = node as MondrianTreeBranch;
+      _tree = _tree.updatePath(targetPathToParent, (node) {
+        final branch = node as MondrianTreeBranch;
         final children = branch.children;
 
         /// FIRST CHECK IF THE SOURCE AND THE TARGET ARE INSIDE THE SAME BRANCH ALREADY
         /// if so, we only need to change the order and were done
         /// we wont need to change fractions or remove it in the second step
         int sourceInTargetsParent = children.indexWhere((e) => (e is MondrianTreeLeaf && e.id == sourceNode.id));
-          if (sourceInTargetsParent != -1) {
+        if (sourceInTargetsParent != -1) {
           // set this flag to skip the removal part later
           skipRemovalForSourceInSameParentAsTarget = true;
 
@@ -216,81 +241,73 @@ class MondrianTreeManipulationService {
                   ]
             ],
           );
-          }
+        }
 
         /// ADJUST THE PATHS TO WHAT THEY WILL BE AFTER MOVING.
         /// DONT NEED THESE VALUES FOR THE ADDING STEP ANYMORE,
         /// SINCE WE ALREADY HAVE ALL THE OBJECTS SECURED.
-          // § source [0,1,0] with target [0,0] on same axis
-          // _ => will result in target parent (0,1) => (0,1,2)
-          // _ _ -- insert before
-          // _ _ _ => target is now at [0,1]
-          // _ _ _ => source is now at [0,0]
-          // _ _ _ => source old parent is now at [0,2] instead of [0,1]
-          // _ _ -- insert after
-          // _ _ _ => target is now at [0,0]
-          // _ _ _ => source is now at [0,1]
-          // _ _ _ => source old parent is now at [0,2] instead of [0,1]
-          // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
-          if (sourcePathToParentBranch.length > targetPathToParent.length) {
-            final potentiallySharedParentPath = sourcePathToParentBranch.sublist(0, targetPathToParent.length);
-            if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
-              // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
-              if (sourcePath[targetPath.length - 1] > targetPath.last) {
-                sourcePathToParentBranch[targetPath.length - 1] += 1;
-                sourcePath[targetPath.length - 1] += 1;
-              }
+        // § source [0,1,0] with target [0,0] on same axis
+        // _ => will result in target parent (0,1) => (0,1,2)
+        // _ _ -- insert before
+        // _ _ _ => target is now at [0,1]
+        // _ _ _ => source is now at [0,0]
+        // _ _ _ => source old parent is now at [0,2] instead of [0,1]
+        // _ _ -- insert after
+        // _ _ _ => target is now at [0,0]
+        // _ _ _ => source is now at [0,1]
+        // _ _ _ => source old parent is now at [0,2] instead of [0,1]
+        // ==> Need to adjust source parent iff the children of a source-parents ancestor have been adjusted
+        if (sourcePathToParentBranch.length > targetPathToParent.length) {
+          final potentiallySharedParentPath = sourcePathToParentBranch.sublist(0, targetPathToParent.length);
+          if (listEquals(potentiallySharedParentPath, targetPathToParent)) {
+            // equal parent; iff sourcePath comes after target, needs to be incremented by one because of insertion before it
+            if (sourcePath[targetPath.length - 1] > targetPath.last) {
+              sourcePathToParentBranch[targetPath.length - 1] += 1;
+              sourcePath[targetPath.length - 1] += 1;
             }
-          } else if (isTabMoving && (sourcePathToParentBranch.length == targetPathToParent.length)) {
-            // SPECIAL CASE: when moving out from a tab, this can happen in the same level
-            // _____________ still need to increment path since can move out of tab group to infront of tab group
+          }
+        } else if (isTabMoving && (sourcePathToParentBranch.length == targetPathToParent.length)) {
+          // SPECIAL CASE: when moving out from a tab, this can happen in the same level
+          // _____________ still need to increment path since can move out of tab group to infront of tab group
           // . source path here is the path to the tab group
           // . since source and target can be the same, we must check for ">=" instead of "="
           // _ § Moving tab from inside tab leaf [0,0] to the left of that same tab leaf at [0,0]
           if (sourcePath[targetPath.length - 1] >= targetPath.last) {
-              sourcePath[targetPath.length - 1] += 1;
-            }
+            sourcePath[targetPath.length - 1] += 1;
           }
+        }
 
         return _addLeafToBranch(
           targetParentBranch: branch,
           targetIndexInParent: targetChildIndex,
           sourceLeaf: sourceNode,
           isBefore: targetSide.isPositionBefore!,
-          );
-        });
+        );
+      });
     }
     // (1-C) INTO OPPOSING AXIS ------------------------------------------------
-    // TODO REFACTOR
     else {
-        //    -- other axis
-        //      => replace child with branch and insert child and source there (both .5 fraction)
-        _tree = _tree.updatePath(targetPath, (node) {
-          final leaf = node as MondrianTreeLeaf;
+      //    -- other axis
+      //      => replace child with branch and insert child and source there (both .5 fraction)
+      _tree = _tree.updatePath(targetPath, (node) {
+        final leaf = node as MondrianTreeLeaf;
 
-          bool isBefore = (targetSide.isLeft || targetSide.isTop);
+        bool isBefore = targetSide.isPositionBefore!;
 
-          // When moving a tab out from the group into the new branch shared with the group,
-          // We must adjust the paths
-          if (isTabMoving && listEquals(targetPath, sourcePath)) {
-            int added = isBefore ? 1 : 0;
-            targetPath = [...targetPath, added];
-            sourcePath = [...sourcePath, added];
-          }
+        // When moving a tab out from the group into the new branch shared with the group,
+        // We must adjust the paths
+        if (isTabMoving && listEquals(targetPath, sourcePath)) {
+          int added = isBefore ? 1 : 0;
+          targetPath = [...targetPath, added];
+          sourcePath = [...sourcePath, added];
+        }
 
-          return MondrianTreeBranch(
-            fraction: leaf.fraction,
-            children: [
-              if (isBefore) ...[
-                sourceNode.updateFraction(0.5),
-              ],
-              leaf.updateFraction(0.5),
-              if (!isBefore) ...[
-                sourceNode.updateFraction(0.5),
-              ],
-            ],
-          );
-        });
+        return _addLeafToLeafAsNewBranch(
+          targetLeaf: leaf,
+          sourceLeaf: sourceNode,
+          isBefore: isBefore,
+        );
+      });
     }
 
     // (2) REMOVAL =============================================================
