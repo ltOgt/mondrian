@@ -515,7 +515,7 @@ class MondrianTreeManipulationService {
         if (result != null) return result;
       }
       return null;
-}
+    }
     if (node is MondrianTreeTabLeaf) {
       for (int i = 0; i < node.tabs.length; i++) {
         final tab = node.tabs[i];
@@ -537,5 +537,129 @@ class MondrianTreeManipulationService {
             );
     }
     throw "Unknown type: ${node.runtimeType}";
+  }
+}
+
+class MondrianMarshalSvc {
+  // =========================================================================== AXIS
+  static String encAxis(MondrianAxis axis) {
+    switch (axis) {
+      case MondrianAxis.horizontal:
+        return "horizontal";
+      case MondrianAxis.vertical:
+        return "vertical";
+    }
+  }
+
+  static MondrianAxis decAxis(String s) {
+    switch (s) {
+      case "horizontal":
+        return MondrianAxis.horizontal;
+      case "vertical":
+        return MondrianAxis.vertical;
+      default:
+        throw "No such value: $s";
+    }
+  }
+
+  // =========================================================================== TREE
+  static Map<String, Object> encTree(MondrianTree tree) {
+    return {
+      "rootAxis": tree.rootAxis.encode(),
+      "rootNode": encNodeAbst(tree.rootNode),
+    };
+  }
+
+  static MondrianTree decTree(Map m) {
+    return MondrianTree(
+      rootAxis: MondrianAxisX.decode(m["rootAxis"] as String),
+      rootNode: decNodeAbst(m["rootNode"] as Map),
+    );
+  }
+
+  // =========================================================================== NODE - ABST
+  static Map<String, Object> encNodeAbst(MondrianNodeAbst node) {
+    if (node is MondrianTreeBranch) {
+      return {
+        "type": "branch",
+        "data": encBranch(node),
+      };
+    }
+    if (node is MondrianTreeTabLeaf) {
+      return {
+        "type": "tabLeaf",
+        "data": encTabLeaf(node),
+      };
+    }
+    if (node is MondrianTreeLeaf) {
+      return {
+        "type": "leaf",
+        "data": encLeaf(node),
+      };
+    }
+    throw "Unknown type: ${node.runtimeType}";
+  }
+
+  static MondrianNodeAbst decNodeAbst(Map m) {
+    final String type = m["type"];
+    final Map data = m["data"];
+
+    if (type == "branch") {
+      return decBranch(data);
+    }
+    if (type == "tabLeaf") {
+      return decTabLeaf(data);
+    }
+    if (type == "leaf") {
+      return decLeaf(data);
+    }
+    throw "Unknown type: $type";
+  }
+
+  // =========================================================================== LEAF
+  static Map<String, Object> encLeaf(MondrianTreeLeaf leaf) {
+    return {
+      "fraction": leaf.fraction.toString(),
+      "id": leaf.id.value,
+    };
+  }
+
+  static MondrianTreeLeaf decLeaf(Map m) {
+    return MondrianTreeLeaf(
+      fraction: double.parse(m["fraction"] as String),
+      id: MondrianTreeLeafId(m["id"]),
+    );
+  }
+
+  // =========================================================================== TAB LEAF
+  static Map<String, Object> encTabLeaf(MondrianTreeTabLeaf tabLeaf) {
+    return {
+      "fraction": tabLeaf.fraction.toString(),
+      "tabs": tabLeaf.tabs.map((e) => e.value).toList(),
+      "activeTabIndex": tabLeaf.activeTabIndex.toString(),
+    };
+  }
+
+  static MondrianTreeTabLeaf decTabLeaf(Map m) {
+    return MondrianTreeTabLeaf(
+      fraction: double.parse(m["fraction"] as String),
+      tabs: (m["tabs"] as List<String>).map((e) => MondrianTreeLeafId(e)).toList(),
+      activeTabIndex: int.parse(m["activeTabIndex"] as String),
+    );
+  }
+
+  // =========================================================================== BRANCH
+  static Map<String, Object> encBranch(MondrianTreeBranch branch) {
+    return {
+      "fraction": branch.fraction.toString(),
+      "children": branch.children.map((node) => encNodeAbst(node)).toList(),
+    };
+  }
+
+  static MondrianTreeBranch decBranch(Map m) {
+    return MondrianTreeBranch(
+      fraction: double.parse(m["fraction"] as String),
+      children: (m["children"] as List<Map>).map((Map node) => decNodeAbst(node)).toList(),
+    );
   }
 }

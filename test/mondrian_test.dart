@@ -3,6 +3,239 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mondrian/mondrian.dart';
 
 void main() {
+  group("Encode Decode", () {
+    test("Tree without tabs", () {
+      const tree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeBranch(
+              fraction: .7,
+              children: [
+                MondrianTreeLeaf(fraction: .7, id: MondrianTreeLeafId("Big top left")),
+                MondrianTreeBranch(
+                  fraction: .3,
+                  children: [
+                    MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Medium Top Right")),
+                    MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Small Mid Right")),
+                  ],
+                ),
+              ],
+            ),
+            MondrianTreeBranch(
+              fraction: .3,
+              children: [
+                MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Left")),
+                MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Mid")),
+                MondrianTreeLeaf(fraction: .4, id: MondrianTreeLeafId("Bottom Right")),
+              ],
+            )
+          ],
+        ),
+      );
+
+      // Note that doubles are encoded as strings, this is by design (since i like to use SmallRead, which encodes everything as Strings)
+      final Map expectedEncoded = {
+        "rootAxis": "vertical",
+        "rootNode": {
+          "type": "branch",
+          "data": {
+            "fraction": "1.0",
+            "children": [
+              {
+                "type": "branch",
+                "data": {
+                  "fraction": "0.7",
+                  "children": [
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.7", "id": "Big top left"}
+                    },
+                    {
+                      "type": "branch",
+                      "data": {
+                        "fraction": "0.3",
+                        "children": [
+                          {
+                            "type": "leaf",
+                            "data": {"fraction": "0.6", "id": "Medium Top Right"}
+                          },
+                          {
+                            "type": "leaf",
+                            "data": {"fraction": "0.6", "id": "Small Mid Right"}
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "branch",
+                "data": {
+                  "fraction": "0.3",
+                  "children": [
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.3", "id": "Bottom Left"}
+                    },
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.3", "id": "Bottom Mid"}
+                    },
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.4", "id": "Bottom Right"}
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+      };
+
+      final encoded = tree.encode();
+
+      expect(encoded, equals(expectedEncoded));
+
+      final decoded = MondrianTree.decode(encoded);
+
+      expect(decoded, equals(tree));
+    });
+
+    test("Tree with tabs", () {
+      // NOTE: because of transient ids, we can only compare the representation
+      // ____  the tree wont be exactly equal after encode=>decode since the transient ids will differ
+
+      final tree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            const MondrianTreeBranch(
+              fraction: .7,
+              children: [
+                MondrianTreeLeaf(fraction: .7, id: MondrianTreeLeafId("Big top left")),
+                MondrianTreeBranch(
+                  fraction: .3,
+                  children: [
+                    MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Medium Top Right")),
+                    MondrianTreeLeaf(fraction: .6, id: MondrianTreeLeafId("Small Mid Right")),
+                  ],
+                ),
+              ],
+            ),
+            MondrianTreeBranch(
+              fraction: .3,
+              children: [
+                const MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Left")),
+                const MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Bottom Mid")),
+                MondrianTreeTabLeaf(
+                  fraction: .4,
+                  activeTabIndex: 0,
+                  tabs: [
+                    const MondrianTreeLeafId("Tab 1"),
+                    const MondrianTreeLeafId("Tab 2"),
+                  ],
+                ),
+              ],
+            )
+          ],
+        ),
+      );
+
+      // Note that doubles are encoded as strings, this is by design (since i like to use SmallRead, which encodes everything as Strings)
+      final Map expectedEncoded = {
+        "rootAxis": "vertical",
+        "rootNode": {
+          "type": "branch",
+          "data": {
+            "fraction": "1.0",
+            "children": [
+              {
+                "type": "branch",
+                "data": {
+                  "fraction": "0.7",
+                  "children": [
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.7", "id": "Big top left"}
+                    },
+                    {
+                      "type": "branch",
+                      "data": {
+                        "fraction": "0.3",
+                        "children": [
+                          {
+                            "type": "leaf",
+                            "data": {"fraction": "0.6", "id": "Medium Top Right"}
+                          },
+                          {
+                            "type": "leaf",
+                            "data": {"fraction": "0.6", "id": "Small Mid Right"}
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "branch",
+                "data": {
+                  "fraction": "0.3",
+                  "children": [
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.3", "id": "Bottom Left"}
+                    },
+                    {
+                      "type": "leaf",
+                      "data": {"fraction": "0.3", "id": "Bottom Mid"}
+                    },
+                    {
+                      "type": "tabLeaf",
+                      "data": {
+                        "fraction": "0.4",
+                        "activeTabIndex": "0",
+                        "tabs": ["Tab 1", "Tab 2"]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+      };
+
+      final encoded = tree.encode();
+
+      expect(encoded, equals(expectedEncoded));
+    });
+
+    test("Decode Encode Tab", () {
+      final tab = MondrianTreeTabLeaf(
+        fraction: .4,
+        activeTabIndex: 0,
+        tabs: [
+          const MondrianTreeLeafId("Tab 1"),
+          const MondrianTreeLeafId("Tab 2"),
+        ],
+      );
+
+      final tabEncoded = MondrianMarshalSvc.encTabLeaf(tab);
+      final tabDecoded = MondrianMarshalSvc.decTabLeaf(tabEncoded);
+
+      expect(tab.fraction, equals(tabDecoded.fraction));
+      expect(tab.activeTabIndex, equals(tabDecoded.activeTabIndex));
+      expect(tab.tabs, equals(tabDecoded.tabs));
+      expect(tab.id != tabDecoded.id, isTrue);
+    });
+  });
+
   group("Path from Id", () {
     const wantedId = MondrianTreeLeafId("Leaf 5");
     const nonExistentId = MondrianTreeLeafId("Leaf Doe Not Exist");

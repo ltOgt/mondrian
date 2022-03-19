@@ -77,6 +77,9 @@ class MondrianTree {
 
   @override
   String toString() => 'MondrianTree(rootNode: $rootNode, rootAxis: $rootAxis)';
+
+  Map<String, Object> encode() => MondrianMarshalSvc.encTree(this);
+  static MondrianTree decode(Map m) => MondrianMarshalSvc.decTree(m);
 }
 
 // ============================================================================= ABSTRACT BASE NODE
