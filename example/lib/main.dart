@@ -129,7 +129,7 @@ class WindowExample extends StatelessWidget {
   final Function(DragUpdateDetails d) onMoveUpdate;
   final VoidCallback onMoveEnd;
   final bool isMoving;
-  final Function(MondrianMoveTargetDropPosition position) onDrop;
+  final Function(MondrianLeafMoveTargetDropPosition position) onDrop;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +137,7 @@ class WindowExample extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        WindowMoveHandle(
+        MondrianLeafMoveHandle(
           dragIndicator: Container(
             height: 100,
             width: 100,
@@ -152,10 +152,10 @@ class WindowExample extends StatelessWidget {
           onMoveUpdate: onMoveUpdate,
         ),
         Expanded(
-          child: WindowMoveTarget(
+          child: MondrianLeafMoveTarget(
             onDrop: onDrop,
             isActive: isMoving,
-            target: Container(
+            targetPositionIndicator: Container(
               color: Colors.red,
             ),
             child: Center(

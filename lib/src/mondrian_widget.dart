@@ -83,7 +83,11 @@ class MondrianWidget extends StatefulWidget {
     this.buildMoveDragIndicator,
     this.resizeDraggerColor = const Color(0xFFAAAAFF),
     this.resizeDraggerWidth = 2,
-    // TODO think about how to expose move targets, but maybe only visually changable, not position and size
+    this.targetPositionIndicator = const DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color(0xAAFFFFFF),
+      ),
+    ),
   }) : super(key: key);
 
   // =========================================================================== FIELDS
@@ -144,6 +148,15 @@ class MondrianWidget extends StatefulWidget {
 
   final Color resizeDraggerColor;
   final double resizeDraggerWidth;
+
+  // TODO id really want to expose a builder for this
+  // probably like `Widget targetBuilder(Widget _metaDataWrapper(Widget child, Position pos))`
+  // which could be used like
+  // - targetBuilder(_wrap) => _wrap(MyWidgetOnlyForCenter(), pos.center),
+  // - targetBuilder(_wrap) => Row(children: [_wrap(MyLeft(), pos.left), _wrap(MyCenter(), pos.center), _wrap(MyRight(), pos.right),])
+  // etc..
+  // this allows for custom widgets without requiring the user to add the meta data etc themselves
+  final Widget targetPositionIndicator;
 
   @override
   State<MondrianWidget> createState() => _MondrianWidgetState();
@@ -210,7 +223,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
   }
 
   void _onDrop(
-    MondrianMoveTargetDropPosition targetDropPosition,
+    MondrianLeafMoveTargetDropPosition targetDropPosition,
     MondrianTreePath targetLeafPath,
   ) {
     widget.onUpdateTree(
@@ -249,7 +262,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                   children: [
                     // TABS ----------------------------------------------------
                     for (int i = 0; i < tabLeaf.tabs.length; i++) ...[
-                      WindowMoveHandle(
+                      MondrianLeafMoveHandle(
                         dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, i) ?? _defaultMoveDragIndicator,
                         child: GestureDetector(
                           onTap: () => _setActiveTab(leafPath, i),
@@ -268,7 +281,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                       ),
                     ],
                     // TAB OVERHANG --------------------------------------------
-                    WindowMoveHandle(
+                    MondrianLeafMoveHandle(
                       dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
                       child: SizedBox(
                         width: max(
@@ -290,13 +303,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
           }),
           // ACTUAL WIDGET -----------------------------------------------------
           Expanded(
-            child: WindowMoveTarget(
+            child: MondrianLeafMoveTarget(
               onDrop: (pos) => _onDrop(pos, leafPath),
               isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
-              // TODO figure out a way to expose drop target
-              target: Container(
-                color: const Color(0xFFFF2222),
-              ),
+              targetPositionIndicator: widget.targetPositionIndicator,
               child: widget.buildLeaf(leafPath, leafNode.activeTabIndex),
             ),
           ),
@@ -311,7 +321,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
       children: [
         SizedBox(
           height: widget.leafBarHeight,
-          child: WindowMoveHandle(
+          child: MondrianLeafMoveHandle(
             dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
             child: widget.buildLeafBar?.call(leafPath) ?? _buildDefaultLeafBar(leafNode.id),
             onMoveEnd: _onMoveEnd,
@@ -321,13 +331,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
         ),
         // ACTUAL WIDGET -----------------------------------------------------
         Expanded(
-          child: WindowMoveTarget(
+          child: MondrianLeafMoveTarget(
             onDrop: (pos) => _onDrop(pos, leafPath),
             isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
-            // TODO figure out a way to expose drop target
-            target: Container(
-              color: const Color(0xFFFF2222),
-            ),
+            targetPositionIndicator: widget.targetPositionIndicator,
             child: widget.buildLeaf(leafPath, null),
           ),
         ),

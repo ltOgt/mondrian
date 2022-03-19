@@ -63,7 +63,7 @@ class MondrianTree {
   MondrianTree moveLeaf({
     required MondrianTreePath sourcePath,
     required MondrianTreePath targetPath,
-    required MondrianMoveTargetDropPosition targetSide,
+    required MondrianLeafMoveTargetDropPosition targetSide,
     // this is needed on tab move, since the sourcePath still points to the parent (the tab leaf)
     required int? tabIndexIfAny,
   }) {
@@ -602,7 +602,7 @@ class MondrianTreeLeaf extends MondrianNodeAbst {
   final double fraction;
 
   /// The id representing this leaf.
-  /// Used by [_MondrianLayoutAndResize.resolveLeafToWidget] to resolve the widget representing this leaf.
+  /// Used by [_MondrianLayoutAndResize._resolveLeafToWidget] to resolve the widget representing this leaf.
   final MondrianTreeLeafId id;
 
   const MondrianTreeLeaf({
