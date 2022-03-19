@@ -5,6 +5,38 @@ import 'package:mondrian/mondrian.dart';
 import 'package:mondrian/src/utils.dart';
 
 class MondrianTreeManipulationService {
+
+  /// Insert a [sourceLeaf] into the same axis as a target [MondrianTreeLeaf].
+  /// That leaf is identified by its [targetIndexInParent] inside its [targetParentBranch].
+  ///
+  /// This insertion can happen either before ([isBefore]) or after.
+  ///
+  /// This will return [targetParentBranch] with adjusted children as a new [MondrianTreeBranch] containing both leafs,
+  /// each taking up half the space that the target leaf took up before.
+  static MondrianTreeBranch _addLeafToBranch({
+    required MondrianTreeBranch targetParentBranch,
+    required int targetIndexInParent,
+    required MondrianTreeLeaf sourceLeaf,
+    required bool isBefore,
+  }) {
+    final parentsChildren = targetParentBranch.children;
+    final targetNode = parentsChildren[targetIndexInParent];
+    final newFractionOfTargetAndSourceInParent = cutPrecision(targetNode.fraction * 0.5);
+
+    return targetParentBranch.copyWith(
+      children: [
+        for (int i = 0; i < parentsChildren.length; i++)
+          if (i == targetIndexInParent) ...[
+            if (isBefore) ...[sourceLeaf.updateFraction(newFractionOfTargetAndSourceInParent)],
+            targetNode.updateFraction(newFractionOfTargetAndSourceInParent),
+            if (!isBefore) ...[sourceLeaf.updateFraction(newFractionOfTargetAndSourceInParent)],
+          ] else ...[
+            parentsChildren[i],
+          ]
+      ],
+    );
+  }
+
   /// Insert a [sourceLeaf] into the target [MondrianTreeLeaf] as a new tab.
   ///
   /// This insertion will happen after the currently active [MondrianTreeTabLeaf.activeTabIndex].
@@ -115,7 +147,7 @@ class MondrianTreeManipulationService {
     final targetChildIndex = targetPath.last;
     final targetAxis = targetPath.length.isOdd ? _rootAxis : _rootAxis.next;
 
-    bool isReorderInSameParent = false;
+    bool skipRemovalForSourceInSameParentAsTarget = false;
 
     // 1) insert
     // TODO: when splitting a targets fraction with the newly added source, we still need to ensure that the fractions dont get too small
@@ -126,7 +158,8 @@ class MondrianTreeManipulationService {
     // TODO: only unhandled center drop case is if the resulting tabLeaf becomes the new root
     // ============================================================================================================ >
 
-    // 1) insert
+    // (1) INSERTION ===========================================================
+    // (1-A) INTO CENTER -------------------------------------------------------
     if (targetSide.isCenter) {
       // x) into tab group
       _tree = _tree.updatePath(targetPathToParent, (parent) {
@@ -146,54 +179,48 @@ class MondrianTreeManipulationService {
           children: newChildren,
         );
       });
-    } else {
-      //  a) _
-      //    -- same axis
-      bool bothHorizontal = (targetSide.isLeft || targetSide.isRight) && targetAxis.isHorizontal;
-      bool bothVertical = (targetSide.isTop || targetSide.isBottom) && targetAxis.isVertical;
-      bool bothSameAxis = bothHorizontal || bothVertical;
-      if (bothSameAxis) {
-        //      => insert into parent (Split fraction of previous child between prev and new)
+    }
+    // (1-B) INTO SAME AXIS ----------------------------------------------------
+    else if (targetSide.asAxis == targetAxis) {
         _tree = _tree.updatePath(targetPathToParent, (node) {
           final branch = node as MondrianTreeBranch;
-          final children = <MondrianNodeAbst>[];
+        final children = branch.children;
 
-          // cant just skip, since in this case we want to keep the same sizes
-          int sourceInTargetsParent =
-              branch.children.indexWhere((e) => (e is MondrianTreeLeaf && e.id == sourceNode.id));
+        /// FIRST CHECK IF THE SOURCE AND THE TARGET ARE INSIDE THE SAME BRANCH ALREADY
+        /// if so, we only need to change the order and were done
+        /// we wont need to change fractions or remove it in the second step
+        int sourceInTargetsParent = children.indexWhere((e) => (e is MondrianTreeLeaf && e.id == sourceNode.id));
           if (sourceInTargetsParent != -1) {
-            isReorderInSameParent = true;
+          // set this flag to skip the removal part later
+          skipRemovalForSourceInSameParentAsTarget = true;
+
+          // can also return directly without having to adjust the paths for the removal part
+          // ... since we skip that
+          return branch.copyWith(
+            children: [
+              for (int i = 0; i < children.length; i++)
+                // skip the old position of the source
+                if (i != sourceInTargetsParent)
+                  if (i == targetChildIndex) ...[
+                    // add source before or after the target
+                    if (targetSide.isPositionBefore!) ...[
+                      children[sourceInTargetsParent],
+                      children[targetChildIndex],
+                    ] else ...[
+                      children[targetChildIndex],
+                      children[sourceInTargetsParent],
+                    ],
+                  ] else ...[
+                    // add all others normaly
+                    children[i],
+                  ]
+            ],
+          );
           }
 
-          for (int i = 0; i < branch.children.length; i++) {
-            final targetChild = branch.children[i];
-
-            // Skip if the sourceNode is already present in the targets parent (i.e. reorder inside of parent)
-            // NOTE: this can never happen when moving a tab, since the leafId is not directly in the branch
-            if (i == sourceInTargetsParent) {
-              continue;
-            }
-
-            if (i == targetChildIndex) {
-              // on reorder in same parent we want to keep the same sizes, otherwise we split the size of the target between the two
-              final newTargetFraction =
-                  isReorderInSameParent ? targetChild.fraction : cutPrecision(targetChild.fraction * 0.5);
-              final newSourceFraction =
-                  isReorderInSameParent ? sourceNode.fraction : cutPrecision(targetChild.fraction * 0.5);
-
-              if (targetSide.isLeft || targetSide.isTop) {
-                children.add(sourceNode.updateFraction(newSourceFraction));
-              }
-              children.add(targetChild.updateFraction(newTargetFraction));
-
-              if (targetSide.isRight || targetSide.isBottom) {
-                children.add(sourceNode.updateFraction(newSourceFraction));
-              }
-            } else {
-              children.add(branch.children[i]);
-            }
-          }
-
+        /// ADJUST THE PATHS TO WHAT THEY WILL BE AFTER MOVING.
+        /// DONT NEED THESE VALUES FOR THE ADDING STEP ANYMORE,
+        /// SINCE WE ALREADY HAVE ALL THE OBJECTS SECURED.
           // § source [0,1,0] with target [0,0] on same axis
           // _ => will result in target parent (0,1) => (0,1,2)
           // _ _ -- insert before
@@ -225,12 +252,17 @@ class MondrianTreeManipulationService {
             }
           }
 
-          return MondrianTreeBranch(
-            fraction: branch.fraction,
-            children: children,
+        return _addLeafToBranch(
+          targetParentBranch: branch,
+          targetIndexInParent: targetChildIndex,
+          sourceLeaf: sourceNode,
+          isBefore: targetSide.isPositionBefore!,
           );
         });
-      } else {
+    }
+    // (1-C) INTO OPPOSING AXIS ------------------------------------------------
+    // TODO REFACTOR
+    else {
         //    -- other axis
         //      => replace child with branch and insert child and source there (both .5 fraction)
         _tree = _tree.updatePath(targetPath, (node) {
@@ -259,8 +291,10 @@ class MondrianTreeManipulationService {
             ],
           );
         });
-      }
     }
+
+    // (2) REMOVAL =============================================================
+    // TODO REFACTOR
 
     // true if actually is leaf, false if is not a leaf
     if (isTabMoving) {
@@ -287,7 +321,7 @@ class MondrianTreeManipulationService {
         );
       });
       // (2) remove tab if that was the last child
-    } else if (!isReorderInSameParent) {
+    } else if (!skipRemovalForSourceInSameParentAsTarget) {
       // 2) remove
 
       if (sourcePathToParentBranch.isEmpty) {
