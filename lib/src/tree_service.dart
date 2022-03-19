@@ -217,8 +217,10 @@ class MondrianTreeManipulationService {
           } else if (isTabMoving && (sourcePathToParentBranch.length == targetPathToParent.length)) {
             // SPECIAL CASE: when moving out from a tab, this can happen in the same level
             // _____________ still need to increment path since can move out of tab group to infront of tab group
-            // source path here is the path to the tab group
-            if (sourcePath[targetPath.length - 1] > targetPath.last) {
+          // . source path here is the path to the tab group
+          // . since source and target can be the same, we must check for ">=" instead of "="
+          // _ § Moving tab from inside tab leaf [0,0] to the left of that same tab leaf at [0,0]
+          if (sourcePath[targetPath.length - 1] >= targetPath.last) {
               sourcePath[targetPath.length - 1] += 1;
             }
           }
