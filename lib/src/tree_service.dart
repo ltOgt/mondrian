@@ -97,6 +97,38 @@ class MondrianTreeManipulationService {
     );
   }
 
+  /// If the root of the [MondrianTree] is a [MondrianTreeLeaf], we can add a new [sourceLeaf] to the [targetRoot].
+  ///
+  /// This can either be as a [MondrianTreeBranch] or into a shared [MondrianTreeTabLeaf].
+  /// Depending on the [targetRootAxis] and the [targetSide], the [MondrianTree.rootAxis] might be inverted.
+  static MondrianTree _addLeafToRoot({
+    required MondrianTreeLeaf sourceLeaf,
+    required MondrianTreeLeaf targetRoot,
+    required MondrianAxis targetRootAxis,
+    required MondrianLeafMoveTargetDropPosition targetSide,
+  }) {
+    if (targetSide.isCenter) {
+      return MondrianTree(
+        rootNode: _addLeafToLeafAsTab(
+          targetLeaf: targetRoot,
+          sourceLeaf: sourceLeaf,
+        ),
+        rootAxis: targetRootAxis,
+      );
+    } else {
+      return MondrianTree(
+        rootNode: _addLeafToLeafAsNewBranch(
+          targetLeaf: targetRoot,
+          sourceLeaf: sourceLeaf,
+          isBefore: targetSide.isPositionBefore!,
+        ),
+        rootAxis: targetRootAxis == targetSide.asAxis //
+            ? targetRootAxis
+            : targetRootAxis.next,
+      );
+    }
+  }
+
   static MondrianTree moveLeaf({
     required MondrianTree tree,
     required MondrianTreePath sourcePath,
@@ -592,6 +624,63 @@ class MondrianTreeManipulationService {
             );
     }
     throw "Unknown type: ${node.runtimeType}";
+  }
+
+  static MondrianTree createLeaf({
+    required MondrianTree tree,
+    required MondrianTreePath targetPathToLeaf,
+    required MondrianLeafMoveTargetDropPosition targetSide,
+    required MondrianTreeLeafId newLeafId,
+  }) {
+    // actual fraction will be set in _add.. methods
+    final sourceLeaf = MondrianTreeLeaf(id: newLeafId, fraction: -1);
+
+    if (targetPathToLeaf.isEmpty) {
+      assert(tree.rootNode is MondrianTreeLeaf);
+      return _addLeafToRoot(
+        sourceLeaf: sourceLeaf,
+        targetRoot: tree.rootNode as MondrianTreeLeaf,
+        targetRootAxis: tree.rootAxis,
+        targetSide: targetSide,
+      );
+    }
+
+    // can be empty if root is branch and target is a leaf in root branch
+    final targetPathToParent = targetPathToLeaf.sublist(0, targetPathToLeaf.length - 1);
+    final targetPathIndexInParent = targetPathToLeaf.last;
+    return tree.updatePath(targetPathToParent, (parent) {
+      (parent as MondrianTreeBranch);
+      final targetLeaf = parent.children[targetPathIndexInParent] as MondrianTreeLeaf;
+
+      if (targetSide.isCenter) {
+        final newChildren = [...parent.children];
+        newChildren[targetPathIndexInParent] = _addLeafToLeafAsTab(
+          targetLeaf: targetLeaf,
+          sourceLeaf: sourceLeaf,
+        );
+        return parent.copyWith(children: newChildren);
+      }
+
+      final isBefore = targetSide.isPositionBefore!;
+      final targetAxis = targetPathToLeaf.length.isOdd ? tree.rootAxis : tree.rootAxis.next;
+      final isSameAxis = targetAxis == targetSide.asAxis;
+      if (isSameAxis) {
+        return _addLeafToBranch(
+          targetParentBranch: parent,
+          targetIndexInParent: targetPathIndexInParent,
+          sourceLeaf: sourceLeaf,
+          isBefore: isBefore,
+        );
+      } else {
+        final newChildren = [...parent.children];
+        newChildren[targetPathIndexInParent] = _addLeafToLeafAsNewBranch(
+          targetLeaf: targetLeaf,
+          sourceLeaf: sourceLeaf,
+          isBefore: isBefore,
+        );
+        return parent.copyWith(children: newChildren);
+      }
+    });
   }
 }
 

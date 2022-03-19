@@ -709,10 +709,257 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
   });
 
+  group("Create Leaf", () {
+    test("Next to leaf in same axis => add to parent branch", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 2"), fraction: .5),
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+            MondrianTreeLeaf(id: newLeafId, fraction: .25),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 2"), fraction: .25),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.left,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [1],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+    test("Next to leaf in other axis => create new 2-branch in parent branch", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 2"), fraction: .5),
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+            MondrianTreeBranch(
+              fraction: .5,
+              children: [
+                MondrianTreeLeaf(id: newLeafId, fraction: .5),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 2"), fraction: .5),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.top,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [1],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Next to root leaf in same axis => create root branch and add both", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeLeaf(
+          id: MondrianTreeLeafId("Leaf 1"),
+          fraction: 1,
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: newLeafId, fraction: .5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.left,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Next to root leaf in other axis => create root branch and add both & flip root axis", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeLeaf(
+          id: MondrianTreeLeafId("Leaf 1"),
+          fraction: 1,
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: newLeafId, fraction: .5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: .5),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.top,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Inside tab group of existing tab group => add after activeIndex and increment index", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 0,
+          tabs: [
+            const MondrianTreeLeafId("Tab A-1"),
+            const MondrianTreeLeafId("Tab A-2"),
+          ],
+        ),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 1,
+          tabs: [
+            const MondrianTreeLeafId("Tab A-1"),
+            newLeafId,
+            const MondrianTreeLeafId("Tab A-2"),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.center,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Inside tab group of leaf => turn leaf into tab group with target and source", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: 0.5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 2"), fraction: 0.5),
+          ],
+        ),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            const MondrianTreeLeaf(id: MondrianTreeLeafId("Leaf 1"), fraction: 0.5),
+            MondrianTreeTabLeaf(
+              fraction: .5,
+              activeTabIndex: 1,
+              tabs: [
+                const MondrianTreeLeafId("Leaf 2"),
+                newLeafId,
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.center,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [1],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("ROOT - Inside tab group of root leaf => turn leaf into tab group with target and source", () {
+      const newLeafId = MondrianTreeLeafId("NEW ID");
+
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeLeaf(
+          id: MondrianTreeLeafId("ROOT LEAF"),
+          fraction: 1,
+        ),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 1,
+          tabs: [
+            const MondrianTreeLeafId("ROOT LEAF"),
+            newLeafId,
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.createLeaf(
+        targetSide: MondrianLeafMoveTargetDropPosition.center,
+        newLeafId: newLeafId,
+        targetPathToLeaf: [],
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+  });
   test('Update Tree', () {
     const initialTree = MondrianTree(
       rootAxis: MondrianAxis.vertical,

@@ -65,6 +65,18 @@ class MondrianTree {
         tabIndexIfAny: tabIndexIfAny,
       );
 
+  /// Create a new leaf next-to or inside an existing leaf
+  MondrianTree createLeaf({
+    required MondrianTreePath targetPathToLeaf,
+    required MondrianLeafMoveTargetDropPosition targetSide,
+    required MondrianTreeLeafId newLeafId,
+  }) =>
+      MondrianTreeManipulationService.createLeaf(
+        tree: this,
+        targetPathToLeaf: targetPathToLeaf,
+        targetSide: targetSide,
+        newLeafId: newLeafId,
+      );
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
