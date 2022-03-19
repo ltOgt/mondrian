@@ -13,6 +13,12 @@ import 'package:mondrian/src/debug.dart';
 
 // TODO need to enable scrolling if too little space for all widgets to fit with their min width
 
+// TODO still need to add the experiments/tabbed_window.dart thoughts about multiple leafs for the same id
+//  currently, using the same id twice will remove one on drop next to the other (as it should), but sets the fraction to zero for some reason.
+//  instead of adding additional concepts on top, we might just want to treat this as a bug and allow multiple same ids?
+
+// TODO consider adding "bool canMoveContent" by which the content would be wrapped with a move handle; this could be toggled on and off from user
+
 /// {@template TabBuilder}
 /// Builds the tab indicator inside tab bar for the [tabIndex] of the [MondrianTreeTabLeaf] under [tabLeafPath].
 ///
