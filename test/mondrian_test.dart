@@ -675,6 +675,42 @@ void main() {
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
       expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
     });
+
+    test("ROOT - tab before its tabgroup in same branch with no remaining tabs causes tab group to dissolve", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 0,
+          tabs: [
+            const MondrianTreeLeafId("Tab A-1"),
+            const MondrianTreeLeafId("Tab A-2"),
+          ],
+        ),
+      );
+
+      // TabLeaf can not be const because of internal generated id
+      const expectedTreeAfterUpdate = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Tab A-2"), fraction: .5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Tab A-1"), fraction: .5),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.moveLeaf(
+        sourcePath: [],
+        targetPath: [],
+        tabIndexIfAny: 1,
+        targetSide: MondrianLeafMoveTargetDropPosition.left,
+      );
+
+      // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
+      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+    });
   });
 
   test('Update Tree', () {

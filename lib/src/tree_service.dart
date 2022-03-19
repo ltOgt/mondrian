@@ -126,8 +126,7 @@ class MondrianTreeManipulationService {
         ? _sourceNodeOrTabGroup
         : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
 
-    // CAN HAPPEN THAT ONLY A ROOT LEAF EXISTS
-    // TODO REFACTOR
+    // DURING MOVE, IF THE ROOT NODE IS A TAB LEAF, THE TARGET PATH CAN BE EMPTY
     if (targetPath.isEmpty) {
       if (targetSide.isCenter) return _tree;
 
@@ -139,7 +138,23 @@ class MondrianTreeManipulationService {
       );
       final newActive = max(0, _rootNode.activeTabIndex - 1);
 
-      // IF SO JUST RETURN A NEW BRANCH
+      // IF SO JUST RETURN A NEW BRANCH WITH THE TAB REMOVED
+      final tabsWithoutMoved = [
+        for (final tab in _rootNode.tabs)
+          if (tab != sourceNode.id) tab
+      ];
+      final updatedRootLeaf = (tabsWithoutMoved.length > 1) //
+          ? _rootNode.copyWith(
+              fraction: .5,
+              activeTabIndex: newActive,
+              tabs: tabsWithoutMoved,
+            )
+          // Replace with leaf if no more than one tab would remain
+          : MondrianTreeLeaf(
+              id: _rootNode.tabs[0],
+              fraction: .5,
+            );
+
       return MondrianTree(
         rootNode: MondrianTreeBranch(
           fraction: 1,
@@ -147,14 +162,7 @@ class MondrianTreeManipulationService {
             if (targetSide.isLeft || targetSide.isTop) ...[
               sourceNode.updateFraction(.5),
             ],
-            _rootNode.copyWith(
-              fraction: .5,
-              activeTabIndex: newActive,
-              tabs: [
-                for (final tab in _rootNode.tabs)
-                  if (tab != sourceNode.id) tab
-              ],
-            ),
+            updatedRootLeaf,
             if (targetSide.isRight || targetSide.isBottom) ...[
               sourceNode.updateFraction(.5),
             ],
