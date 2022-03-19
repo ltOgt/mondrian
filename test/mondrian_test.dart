@@ -386,7 +386,7 @@ void main() {
             MondrianTreeTabLeaf(
               fraction: .5,
               activeTabIndex: 1,
-              tabs: [
+              tabs: const [
                 MondrianTreeLeafId("Tab A-1"),
                 MondrianTreeLeafId("Tab A-2"),
                 MondrianTreeLeafId("Tab A-3"),
@@ -395,7 +395,7 @@ void main() {
             MondrianTreeTabLeaf(
               fraction: .5,
               activeTabIndex: 1,
-              tabs: [
+              tabs: const [
                 MondrianTreeLeafId("Tab B-1"),
                 MondrianTreeLeafId("Tab B-2"),
                 MondrianTreeLeafId("Tab B-3"),
@@ -411,13 +411,49 @@ void main() {
         rootNode: MondrianTreeTabLeaf(
           fraction: 1,
           activeTabIndex: 3,
-          tabs: [
+          tabs: const [
             MondrianTreeLeafId("Tab A-1"),
             MondrianTreeLeafId("Tab A-2"),
             MondrianTreeLeafId("Tab B-1"),
             MondrianTreeLeafId("Tab B-2"),
             MondrianTreeLeafId("Tab B-3"),
             MondrianTreeLeafId("Tab A-3"),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.moveLeaf(
+        sourcePath: [1],
+        targetPath: [0],
+        tabIndexIfAny: null,
+        targetSide: MondrianLeafMoveTargetDropPosition.center,
+      );
+
+      // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
+      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+    });
+
+    test("leaf into leaf to form tab group", () {
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Tab A-1")),
+            MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Tab A-2")),
+          ],
+        ),
+      );
+
+      // TabLeaf can not be const because of internal generated id
+      final expectedTreeAfterUpdate = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 1,
+          tabs: const [
+            MondrianTreeLeafId("Tab A-1"),
+            MondrianTreeLeafId("Tab A-2"),
           ],
         ),
       );
