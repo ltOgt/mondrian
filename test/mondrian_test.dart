@@ -301,6 +301,12 @@ void main() {
     });
   });
 
+  // TODO need more test cases for
+  // - move tab out of tab leaf into higher branch
+  // - move tab out of tab leaf into same branch
+  // - move tab out of tab leaf that is root
+  // - probably more
+  // ( these have been tested interactively, but should have automatic tests for these cases )
   group("Move Leaf", () {
     test("Axis switch on root move on other axis", () {
       const initialTree = MondrianTree(
@@ -349,7 +355,7 @@ void main() {
 
       // TabLeaf can not be const because of internal generated id
       final expectedTreeAfterUpdate = MondrianTree(
-        rootAxis: MondrianAxis.vertical,
+        rootAxis: MondrianAxis.horizontal,
         rootNode: MondrianTreeTabLeaf(
           fraction: 1,
           activeTabIndex: 1,
@@ -367,11 +373,11 @@ void main() {
         targetSide: MondrianLeafMoveTargetDropPosition.center,
       );
 
-      // TODO this currently fails because the generated ids of the tab leafs obviously differ
-      //  need to add encode + decode and compare encoded representations (which wont include the generated ids)
-      expect(expectedTreeAfterUpdate, equals(actualTreeAfterUpdate));
+      // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
+      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
     });
   });
+
   test('Update Tree', () {
     const initialTree = MondrianTree(
       rootAxis: MondrianAxis.vertical,
