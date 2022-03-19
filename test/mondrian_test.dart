@@ -338,7 +338,7 @@ void main() {
         targetSide: MondrianLeafMoveTargetDropPosition.left,
       );
 
-      expect(expectedTreeAfterUpdate, equals(actualTreeAfterUpdate));
+      expect(actualTreeAfterUpdate, equals(expectedTreeAfterUpdate));
     });
 
     test("root change on merge to tab group", () {
@@ -374,7 +374,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("tab group into tab group", () {
@@ -430,7 +430,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("leaf into leaf to form tab group", () {
@@ -466,7 +466,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("tab before its tabgroup in same branch", () {
@@ -517,7 +517,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("tab before its tabgroup in same branch with no remaining tabs causes tab group to dissolve", () {
@@ -560,7 +560,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("leaf from other branch into branch of other leaf", () {
@@ -614,7 +614,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("source from branch-a into target in branch-b to create new branch-c inside branch-b ", () {
@@ -673,7 +673,7 @@ void main() {
       );
 
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
-      expect(expectedTreeAfterUpdate.encode(), equals(actualTreeAfterUpdate.encode()));
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
 
     test("ROOT - tab before its tabgroup in same branch with no remaining tabs causes tab group to dissolve", () {
