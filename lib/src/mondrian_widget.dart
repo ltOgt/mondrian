@@ -5,7 +5,7 @@ import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
 import 'package:mondrian/src/debug.dart';
 
-// TODO consider adding the actual nodes as well, i think they should be available to the caller of the callback anyways => no need for extra lookup
+// TODO consider adding the actual nodes to the callbacks as well, i think they should be available to the caller of the callback anyways => no need for extra lookup
 
 // TODO need to add "can move" flag; either into the tree, via a callback or via a set of ids
 
@@ -18,6 +18,10 @@ import 'package:mondrian/src/debug.dart';
 //  instead of adding additional concepts on top, we might just want to treat this as a bug and allow multiple same ids?
 
 // TODO consider adding "bool canMoveContent" by which the content would be wrapped with a move handle; this could be toggled on and off from user
+
+// TODO still need to implement reordering of tabs
+//  ~ wrap tab with target that exposes + intercepts only "left/right"
+//  ~ active if tabs.contains(movingLeaf) && movingLeaf != thisTab
 
 /// {@template TabBuilder}
 /// Builds the tab indicator inside tab bar for the [tabIndex] of the [MondrianTreeTabLeaf] under [tabLeafPath].
