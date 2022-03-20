@@ -79,13 +79,13 @@ class MondrianTree {
       );
 
   MondrianTree deleteLeaf({
-    required MondrianTreePath sourcePath,
+    required MondrianTreePath sourcePathToLeaf,
     // needed on deletion of tabs, since sourcePath still points to the parent (the tab leaf)
     required int? tabIndexIfAny,
   }) =>
       MondrianTreeManipulationService.deleteLeaf(
         tree: this,
-        sourcePath: sourcePath,
+        sourcePathToLeaf: sourcePathToLeaf,
         tabIndexIfAny: tabIndexIfAny,
       );
 

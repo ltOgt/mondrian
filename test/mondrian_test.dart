@@ -1082,6 +1082,86 @@ void main() {
     test("Removing active tab from tab group decreases active tab if not zero", () {
       final initialTree = MondrianTree(
         rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(fraction: 1, children: [
+          const MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+          MondrianTreeTabLeaf(
+            fraction: .5,
+            activeTabIndex: 1,
+            tabs: [
+              const MondrianTreeLeafId("Tab 1"),
+              const MondrianTreeLeafId("Tab 2"),
+              const MondrianTreeLeafId("Tab 3"),
+            ],
+          )
+        ]),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(fraction: 1, children: [
+          const MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+          MondrianTreeTabLeaf(
+            fraction: .5,
+            activeTabIndex: 0,
+            tabs: [
+              const MondrianTreeLeafId("Tab 1"),
+              const MondrianTreeLeafId("Tab 3"),
+            ],
+          )
+        ]),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePathToLeaf: [1],
+        tabIndexIfAny: 1,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Removing active tab <zero> from tab group keeps active at zero", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(fraction: 1, children: [
+          const MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+          MondrianTreeTabLeaf(
+            fraction: .5,
+            activeTabIndex: 0,
+            tabs: [
+              const MondrianTreeLeafId("Tab 1"),
+              const MondrianTreeLeafId("Tab 2"),
+              const MondrianTreeLeafId("Tab 3"),
+            ],
+          )
+        ]),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(fraction: 1, children: [
+          const MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+          MondrianTreeTabLeaf(
+            fraction: .5,
+            activeTabIndex: 0,
+            tabs: [
+              const MondrianTreeLeafId("Tab 2"),
+              const MondrianTreeLeafId("Tab 3"),
+            ],
+          )
+        ]),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePathToLeaf: [1],
+        tabIndexIfAny: 0,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("ROOT - Removing active tab from tab group decreases active tab if not zero", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
         rootNode: MondrianTreeTabLeaf(
           fraction: 1,
           activeTabIndex: 1,
@@ -1106,14 +1186,14 @@ void main() {
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [],
+        sourcePathToLeaf: [],
         tabIndexIfAny: 1,
       );
 
       expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
     });
 
-    test("Removing active tab <zero> from tab group keeps active at zero", () {
+    test("ROOT - Removing active tab <zero> from tab group keeps active at zero", () {
       final initialTree = MondrianTree(
         rootAxis: MondrianAxis.horizontal,
         rootNode: MondrianTreeTabLeaf(
@@ -1140,7 +1220,7 @@ void main() {
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [],
+        sourcePathToLeaf: [],
         tabIndexIfAny: 0,
       );
 
@@ -1178,7 +1258,7 @@ void main() {
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [1],
+        sourcePathToLeaf: [1],
         tabIndexIfAny: 1,
       );
 
@@ -1210,7 +1290,7 @@ void main() {
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [2],
+        sourcePathToLeaf: [2],
         tabIndexIfAny: null,
       );
 
@@ -1247,7 +1327,7 @@ void main() {
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [1, 0],
+        sourcePathToLeaf: [1, 0],
         tabIndexIfAny: null,
       );
 
@@ -1267,12 +1347,12 @@ void main() {
       );
 
       const expectedTree = MondrianTree(
-        rootAxis: MondrianAxis.horizontal,
+        rootAxis: MondrianAxis.vertical,
         rootNode: MondrianTreeLeaf(id: MondrianTreeLeafId("Child 3"), fraction: 1),
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [0],
+        sourcePathToLeaf: [0],
         tabIndexIfAny: null,
       );
 
@@ -1301,7 +1381,7 @@ void main() {
       );
 
       final actualTreeAfterUpdate = initialTree.deleteLeaf(
-        sourcePath: [],
+        sourcePathToLeaf: [],
         tabIndexIfAny: 1,
       );
 

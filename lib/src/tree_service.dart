@@ -156,6 +156,7 @@ class MondrianTreeManipulationService {
     );
   }
 
+  // ==================================================================================================== MOVE LEAF
   static MondrianTree moveLeaf({
     required MondrianTree tree,
     required MondrianTreePath sourcePath,
@@ -335,7 +336,6 @@ class MondrianTreeManipulationService {
           // . since source and target can be the same, we must check for ">=" instead of "="
           // _ § Moving tab from inside tab leaf [0,0] to the left of that same tab leaf at [0,0]
           if (sourcePath[targetPath.length - 1] >= targetPath.last && targetSide.isPositionBefore!) {
-            // TODO!!!!!!!!!!
             sourcePath[targetPath.length - 1] += 1;
           }
         }
@@ -374,211 +374,12 @@ class MondrianTreeManipulationService {
     }
 
     // (2) REMOVAL =============================================================
-    // TODO REFACTOR
 
-    // true if actually is leaf, false if is not a leaf
-    if (isTabMoving) {
-      // will need to (1) remove from tab children
-      _tree = _tree.updatePath(sourcePath, (tabLeaf) {
-        return _removeLeafFromTab(
-          tabLeaf: tabLeaf as MondrianTreeTabLeaf,
-          tabToRemove: tabLeaf.tabs[tabIndexIfAny],
-        );
-      });
-      // (2) remove tab if that was the last child
-    } else if (!skipRemovalForSourceInSameParentAsTarget) {
-      // 2) remove
-
-      if (sourcePathToParentBranch.isEmpty) {
-        _tree = _tree.updatePath(sourcePathToParentBranch, (root) {
-          // Parent is root node
-          (root as MondrianTreeBranch);
-          assert(root.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
-
-          // ------------------------------------------------------------------------------------------------
-          // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
-          final removedFractionToDistribute = sourceNode.fraction / (root.children.length - 1);
-
-          // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
-          // List<MondrianTreeNodeAbst> rootChildrenWithoutSourceNode = [
-          //   for (final child in root.children) //
-          //     if (false == (child is MondrianTreeLeaf && child.id == sourceNode.id)) //
-          //       child.updateFraction(
-          //         cutPrecision(child.fraction + removedFractionToDistribute),
-          //       ),
-          // ];
-          List<MondrianNodeAbst> rootChildrenWithoutSourceNode = [];
-          for (final child in root.children) {
-            if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
-              // skip the source to remove it
-              continue;
-            }
-
-            rootChildrenWithoutSourceNode.add(
-              child.updateFraction(
-                cutPrecision(child.fraction + removedFractionToDistribute),
-              ),
-            );
-          }
-          assert(
-            () {
-              final distance = _sumDistanceToOne(rootChildrenWithoutSourceNode);
-              print("Resulting error on rebalance: $distance");
-              return distance < 0.01;
-            }(),
-          ); // TODO maybe rebalance here instead?
-
-          // ------------------------------------------------------------------------------------------------
-          // IF ROOT STILL HAS MULTIPLE CHILDREN => USE THOSE
-          if (rootChildrenWithoutSourceNode.length > 1) {
-            return MondrianTreeBranch(
-              fraction: root.fraction,
-              children: rootChildrenWithoutSourceNode,
-            );
-          }
-
-          // ------------------------------------------------------------------------------------------------
-          // IF ROOT ONLY HAS A SINGLE CHILD, REPLACE ROOT WITH THAT CHILD
-          final onlyChild = rootChildrenWithoutSourceNode.first;
-
-          // Need to flip axis here to preserve orientation, since changing top level
-          _rootAxis = _rootAxis.next;
-
-          // IF THE ONLY CHILD IS A LEAF, USE ROOT FRACTION => DONE
-          if (onlyChild is MondrianTreeLeaf) {
-            // (can be a tab leaf too)
-            return onlyChild.updateFraction(root.fraction);
-          }
-
-          // IF THE ONLY CHILD IS A BRANCH, USE ROOT FRACTION => DONE
-          if (onlyChild is MondrianTreeBranch) {
-            return MondrianTreeBranch(
-              fraction: root.fraction,
-              children: onlyChild.children,
-            );
-          }
-          throw "Unknown node type: ${onlyChild.runtimeType}";
-        });
-      } else {
-        final sourcePathToParentsParent = sourcePathToParentBranch.sublist(0, sourcePathToParentBranch.length - 1);
-        final sourcePathToParentIndex = sourcePathToParentBranch.last;
-
-        _tree = _tree.updatePath(sourcePathToParentsParent, (parentsParent) {
-          (parentsParent as MondrianTreeBranch);
-          final parent = parentsParent.children[sourcePathToParentIndex] as MondrianTreeBranch;
-          assert(parent.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
-
-          // ------------------------------------------------------------------------------------------------
-          // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
-          final removedFractionToDistribute = sourceNode.fraction / (parent.children.length - 1);
-
-          // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
-          // List<MondrianTreeNodeAbst> parentChildrenWithoutSourceNode = [
-          //   for (final child in parent.children) //
-          //     if (false == (child is MondrianTreeLeaf && child.id == sourceNode.id)) //
-          //       child.updateFraction(
-          //         cutPrecision(child.fraction + removedFractionToDistribute),
-          //       ),
-          // ];
-          List<MondrianNodeAbst> parentChildrenWithoutSourceNode = [];
-          for (final child in parent.children) {
-            if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
-              // Skip source child
-              continue;
-            }
-
-            parentChildrenWithoutSourceNode.add(
-              child.updateFraction(
-                cutPrecision(child.fraction + removedFractionToDistribute),
-              ),
-            );
-          }
-
-          assert(
-            () {
-              final distance = _sumDistanceToOne(parentChildrenWithoutSourceNode);
-              print("Resulting error on rebalance: $distance");
-              return distance < 0.01;
-            }(),
-          ); // TODO maybe rebalance here instead?
-
-          // ------------------------------------------------------------------------------------------------
-          // IF PARENT STILL HAS MULTIPLE CHILDREN => USE THOSE
-          if (parentChildrenWithoutSourceNode.length > 1) {
-            // PARENT WITH NEW CHILDREN
-            final newParent = MondrianTreeBranch(
-              fraction: parent.fraction,
-              children: parentChildrenWithoutSourceNode,
-            );
-
-            final newParentInsideParentsParent = [...parentsParent.children];
-            newParentInsideParentsParent[sourcePathToParentIndex] = newParent;
-
-            // PARENTs PARENT (no change done here)
-            return MondrianTreeBranch(
-              fraction: parentsParent.fraction,
-              children: newParentInsideParentsParent,
-            );
-          }
-
-          // ------------------------------------------------------------------------------------------------
-          // IF PARENT HAS A SINGLE CHILD => REPLACE PARENT WITH THAT CHILD
-          final onlyChild = parentChildrenWithoutSourceNode.first;
-
-          // IF THE ONLY CHILD IS A LEAF, USE PARENT FRACTION => DONE
-          if (onlyChild is MondrianTreeLeaf) {
-            // replace parent with only child
-            final parentReplacement = onlyChild.updateFraction(
-              parent.fraction,
-            );
-
-            // TODO uncomment fix after test is written
-            final replacedParentInsideParentsParent = [...parentsParent.children];
-            replacedParentInsideParentsParent[sourcePathToParentIndex] = parentReplacement;
-
-            return MondrianTreeBranch(
-              fraction: parentsParent.fraction,
-              children: replacedParentInsideParentsParent,
-            );
-          }
-
-          // IF THE ONLY CHILD IS A BRANCH, REPLACE PARENT WITH THE CHILDREN OF THAT BRANCH
-          // § Root(A,Row(B,C)) with C above B => Root(A,Row(Col(B,C))); SHOULD BE Root(A, B, C)
-          // _ (Root == ParentParent, Row = Parent, Col(B,C) = Child)
-          if (onlyChild is MondrianTreeBranch) {
-            // parent fraction will be split among childrens children based on their fraction inside of parents child
-            final parentFractionToDistribute = parent.fraction;
-
-            final childsChildrenInsteadOfParentInsideParentsParent = [
-              for (int i = 0; i < parentsParent.children.length; i++)
-                if (i != sourcePathToParentIndex) ...[
-                  // Use the regular children of parentsParent
-                  parentsParent.children[i],
-                ] else ...[
-                  // But replace the parent with the childs children
-                  for (int j = 0; j < onlyChild.children.length; j++) ...[
-                    onlyChild.children[j].updateFraction(
-                      cutPrecision(onlyChild.children[j].fraction * parentFractionToDistribute),
-                    ),
-                  ]
-                ]
-            ];
-            assert(() {
-              final distance = _sumDistanceToOne(childsChildrenInsteadOfParentInsideParentsParent);
-              print("Resulting error on rebalance: $distance");
-              return distance < 0.01;
-            }());
-
-            // PARENTs PARENT (removed direct parent, as well as direct child)
-            return MondrianTreeBranch(
-              fraction: parentsParent.fraction,
-              children: childsChildrenInsteadOfParentInsideParentsParent,
-            );
-          }
-
-          throw "Unknown node type: ${onlyChild.runtimeType}";
-        });
-      }
+    if (!skipRemovalForSourceInSameParentAsTarget) {
+      return _tree.deleteLeaf(
+        sourcePathToLeaf: sourcePath,
+        tabIndexIfAny: tabIndexIfAny,
+      );
     }
 
     return MondrianTree(
@@ -589,6 +390,8 @@ class MondrianTreeManipulationService {
 
   static double _sumDistanceToOne(List<MondrianNodeAbst> list) =>
       (1.0 - list.fold<double>(0.0, (double acc, ele) => acc + ele.fraction)).abs();
+
+  // ==================================================================================================== TREE PATH FROM ID
 
   /// Search the entire tree recursively until [id] has been found and its path constructed.
   ///
@@ -635,6 +438,7 @@ class MondrianTreeManipulationService {
     throw "Unknown type: ${node.runtimeType}";
   }
 
+  // ==================================================================================================== CREATE LEAF
   static MondrianTree createLeaf({
     required MondrianTree tree,
     required MondrianTreePath targetPathToLeaf,
@@ -692,13 +496,246 @@ class MondrianTreeManipulationService {
     });
   }
 
+  // ==================================================================================================== DELETE LEAF
+  // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! still could clean this up by using helper methods like with add
+  //  but since move just uses this method directly anyways, no real need to do that right now.
   static MondrianTree deleteLeaf({
     required MondrianTree tree,
-    required MondrianTreePath sourcePath,
+    required MondrianTreePath sourcePathToLeaf,
     int? tabIndexIfAny,
   }) {
-    // TODO implement
-    return tree;
+    if (sourcePathToLeaf.isEmpty) {
+      final root = tree.rootNode;
+      if (root is MondrianTreeBranch) {
+        throw "Cant remove root node [branch]";
+      } else if (root is MondrianTreeTabLeaf) {
+        if (tabIndexIfAny == null) {
+          throw "Cant remove root node [tab-leaf]";
+        }
+        return MondrianTree(
+          rootNode: _removeLeafFromTab(
+            tabLeaf: root,
+            tabToRemove: root.tabs[tabIndexIfAny],
+          ),
+          rootAxis: tree.rootAxis,
+        );
+      } else {
+        throw "Cant remove root node [leaf]";
+      }
+    }
+
+    // can be empty if root is branch and target is a leaf in root branch
+    final sourcePathToParentBranch = sourcePathToLeaf.sublist(0, sourcePathToLeaf.length - 1);
+    final sourceNode = tree.extractPath(sourcePathToLeaf) as MondrianTreeLeaf;
+
+    var _tree = tree;
+    var _rootAxis = tree.rootAxis;
+
+    if (tabIndexIfAny != null) {
+      // remove tab from tab group / turn tab group into normal leaf on one tab left after remove
+      return _tree.updatePath(sourcePathToLeaf, (tabLeaf) {
+        return _removeLeafFromTab(
+          tabLeaf: tabLeaf as MondrianTreeTabLeaf,
+          tabToRemove: tabLeaf.tabs[tabIndexIfAny],
+        );
+      });
+    }
+
+    if (sourcePathToParentBranch.isEmpty) {
+      _tree = _tree.updatePath(sourcePathToParentBranch, (root) {
+        // Parent is root node
+        (root as MondrianTreeBranch);
+        assert(root.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
+
+        // ------------------------------------------------------------------------------------------------
+        // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
+        final removedFractionToDistribute = sourceNode.fraction / (root.children.length - 1);
+
+        // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
+        // List<MondrianTreeNodeAbst> rootChildrenWithoutSourceNode = [
+        //   for (final child in root.children) //
+        //     if (false == (child is MondrianTreeLeaf && child.id == sourceNode.id)) //
+        //       child.updateFraction(
+        //         cutPrecision(child.fraction + removedFractionToDistribute),
+        //       ),
+        // ];
+        List<MondrianNodeAbst> rootChildrenWithoutSourceNode = [];
+        for (final child in root.children) {
+          if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
+            // skip the source to remove it
+            continue;
+          }
+
+          rootChildrenWithoutSourceNode.add(
+            child.updateFraction(
+              cutPrecision(child.fraction + removedFractionToDistribute),
+            ),
+          );
+        }
+        assert(
+          () {
+            final distance = _sumDistanceToOne(rootChildrenWithoutSourceNode);
+            print("Resulting error on rebalance: $distance");
+            return distance < 0.01;
+          }(),
+        ); // TODO maybe rebalance here instead?
+
+        // ------------------------------------------------------------------------------------------------
+        // IF ROOT STILL HAS MULTIPLE CHILDREN => USE THOSE
+        if (rootChildrenWithoutSourceNode.length > 1) {
+          return MondrianTreeBranch(
+            fraction: root.fraction,
+            children: rootChildrenWithoutSourceNode,
+          );
+        }
+
+        // ------------------------------------------------------------------------------------------------
+        // IF ROOT ONLY HAS A SINGLE CHILD, REPLACE ROOT WITH THAT CHILD
+        final onlyChild = rootChildrenWithoutSourceNode.first;
+
+        // Need to flip axis here to preserve orientation, since changing top level
+        _rootAxis = _rootAxis.next;
+
+        // IF THE ONLY CHILD IS A LEAF, USE ROOT FRACTION => DONE
+        if (onlyChild is MondrianTreeLeaf) {
+          // (can be a tab leaf too)
+          return onlyChild.updateFraction(root.fraction);
+        }
+
+        // IF THE ONLY CHILD IS A BRANCH, USE ROOT FRACTION => DONE
+        if (onlyChild is MondrianTreeBranch) {
+          return MondrianTreeBranch(
+            fraction: root.fraction,
+            children: onlyChild.children,
+          );
+        }
+        throw "Unknown node type: ${onlyChild.runtimeType}";
+      });
+    } else {
+      final sourcePathToParentsParent = sourcePathToParentBranch.sublist(0, sourcePathToParentBranch.length - 1);
+      final sourcePathToParentIndex = sourcePathToParentBranch.last;
+
+      _tree = _tree.updatePath(sourcePathToParentsParent, (parentsParent) {
+        (parentsParent as MondrianTreeBranch);
+        final parent = parentsParent.children[sourcePathToParentIndex] as MondrianTreeBranch;
+        assert(parent.children.any((e) => e is MondrianTreeLeaf && e.id == sourceNode.id));
+
+        // ------------------------------------------------------------------------------------------------
+        // REMOVE SOURCE NODE + DISTRIBUTE ITS FRACTION AMONG REMAINING
+        final removedFractionToDistribute = sourceNode.fraction / (parent.children.length - 1);
+
+        // Cant use this for now, see https://github.com/flutter/flutter/issues/100135
+        // List<MondrianTreeNodeAbst> parentChildrenWithoutSourceNode = [
+        //   for (final child in parent.children) //
+        //     if (false == (child is MondrianTreeLeaf && child.id == sourceNode.id)) //
+        //       child.updateFraction(
+        //         cutPrecision(child.fraction + removedFractionToDistribute),
+        //       ),
+        // ];
+        List<MondrianNodeAbst> parentChildrenWithoutSourceNode = [];
+        for (final child in parent.children) {
+          if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
+            // Skip source child
+            continue;
+          }
+
+          parentChildrenWithoutSourceNode.add(
+            child.updateFraction(
+              cutPrecision(child.fraction + removedFractionToDistribute),
+            ),
+          );
+        }
+
+        assert(
+          () {
+            final distance = _sumDistanceToOne(parentChildrenWithoutSourceNode);
+            print("Resulting error on rebalance: $distance");
+            return distance < 0.01;
+          }(),
+        ); // TODO maybe rebalance here instead?
+
+        // ------------------------------------------------------------------------------------------------
+        // IF PARENT STILL HAS MULTIPLE CHILDREN => USE THOSE
+        if (parentChildrenWithoutSourceNode.length > 1) {
+          // PARENT WITH NEW CHILDREN
+          final newParent = MondrianTreeBranch(
+            fraction: parent.fraction,
+            children: parentChildrenWithoutSourceNode,
+          );
+
+          final newParentInsideParentsParent = [...parentsParent.children];
+          newParentInsideParentsParent[sourcePathToParentIndex] = newParent;
+
+          // PARENTs PARENT (no change done here)
+          return MondrianTreeBranch(
+            fraction: parentsParent.fraction,
+            children: newParentInsideParentsParent,
+          );
+        }
+
+        // ------------------------------------------------------------------------------------------------
+        // IF PARENT HAS A SINGLE CHILD => REPLACE PARENT WITH THAT CHILD
+        final onlyChild = parentChildrenWithoutSourceNode.first;
+
+        // IF THE ONLY CHILD IS A LEAF, USE PARENT FRACTION => DONE
+        if (onlyChild is MondrianTreeLeaf) {
+          // replace parent with only child
+          final parentReplacement = onlyChild.updateFraction(
+            parent.fraction,
+          );
+
+          // TODO uncomment fix after test is written
+          final replacedParentInsideParentsParent = [...parentsParent.children];
+          replacedParentInsideParentsParent[sourcePathToParentIndex] = parentReplacement;
+
+          return MondrianTreeBranch(
+            fraction: parentsParent.fraction,
+            children: replacedParentInsideParentsParent,
+          );
+        }
+
+        // IF THE ONLY CHILD IS A BRANCH, REPLACE PARENT WITH THE CHILDREN OF THAT BRANCH
+        // § Root(A,Row(B,C)) with C above B => Root(A,Row(Col(B,C))); SHOULD BE Root(A, B, C)
+        // _ (Root == ParentParent, Row = Parent, Col(B,C) = Child)
+        if (onlyChild is MondrianTreeBranch) {
+          // parent fraction will be split among childrens children based on their fraction inside of parents child
+          final parentFractionToDistribute = parent.fraction;
+
+          final childsChildrenInsteadOfParentInsideParentsParent = [
+            for (int i = 0; i < parentsParent.children.length; i++)
+              if (i != sourcePathToParentIndex) ...[
+                // Use the regular children of parentsParent
+                parentsParent.children[i],
+              ] else ...[
+                // But replace the parent with the childs children
+                for (int j = 0; j < onlyChild.children.length; j++) ...[
+                  onlyChild.children[j].updateFraction(
+                    cutPrecision(onlyChild.children[j].fraction * parentFractionToDistribute),
+                  ),
+                ]
+              ]
+          ];
+          assert(() {
+            final distance = _sumDistanceToOne(childsChildrenInsteadOfParentInsideParentsParent);
+            print("Resulting error on rebalance: $distance");
+            return distance < 0.01;
+          }());
+
+          // PARENTs PARENT (removed direct parent, as well as direct child)
+          return MondrianTreeBranch(
+            fraction: parentsParent.fraction,
+            children: childsChildrenInsteadOfParentInsideParentsParent,
+          );
+        }
+
+        throw "Unknown node type: ${onlyChild.runtimeType}";
+      });
+    }
+
+    return MondrianTree(
+      rootNode: _tree.rootNode,
+      rootAxis: _rootAxis,
+    );
   }
 }
 
