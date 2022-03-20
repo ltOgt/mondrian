@@ -34,10 +34,15 @@ class _MyAppState extends State<MyApp> {
     const MondrianTreeLeafId("White 5"): Colors.white,
   };
 
+  MondrianTree get effectiveTree => isBaseExample ? baseExampleTree : mondrianExampleTree;
+  set effectiveTree(MondrianTree tree) => isBaseExample ? baseExampleTree = tree : mondrianExampleTree = tree;
+
   void toggleDebugPaint() {
     MondrianDebugSingleton.instance.toggleBranchDebugPainting();
     setState(() {});
   }
+
+  bool isLeafMoving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +54,39 @@ class _MyAppState extends State<MyApp> {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            // TODO actually still need to check if its a tab leaf and whether only a tab is moved
+            if (isLeafMoving && effectiveTree.rootNode is! MondrianTreeLeaf)
+              Container(
+                width: 100,
+                height: 100,
+                color: Colors.red,
+                child: MondrianLeafMoveTarget(
+                  isActive: true,
+                  // TODO here a single overlay would be best, good usecase for the proposed builder
+                  targetPositionIndicator: Container(
+                    width: 20,
+                    height: 20,
+                    color: Colors.red.withAlpha(40),
+                  ),
+                  onDrop: (pos, sourceLeafPath) {
+                    if (isBaseExample) {
+                      baseExampleTree = baseExampleTree.deleteLeaf(
+                        sourcePathToLeaf: sourceLeafPath.path,
+                        tabIndexIfAny: sourceLeafPath.tabIndexIfAny,
+                      );
+                    } else {
+                      mondrianExampleTree = mondrianExampleTree.deleteLeaf(
+                        sourcePathToLeaf: sourceLeafPath.path,
+                        tabIndexIfAny: sourceLeafPath.tabIndexIfAny,
+                      );
+                    }
+                    setState(() {});
+                  },
+                  child: const Center(
+                    child: Icon(Icons.delete),
+                  ),
+                ),
+              ),
             FloatingActionButton(
               onPressed: toggleDebugPaint,
               child: const Icon(Icons.brush),
@@ -110,6 +148,16 @@ class _MyAppState extends State<MyApp> {
                 color: mondrianExampleColors[leafId],
               );
             }
+          },
+          onMoveLeafStart: (path) {
+            setState(() {
+              isLeafMoving = true;
+            });
+          },
+          onMoveLeafEnd: (path) {
+            setState(() {
+              isLeafMoving = false;
+            });
           },
         ),
       ),
@@ -259,59 +307,6 @@ const mondrian_tree = MondrianTree(
   ),
 );
 
-class WindowExample extends StatelessWidget {
-  const WindowExample({
-    required this.text,
-    required this.onMoveStart,
-    required this.onMoveUpdate,
-    required this.onMoveEnd,
-    required this.isMoving,
-    required this.onDrop,
-  });
-
-  final String text;
-  final VoidCallback onMoveStart;
-  final Function(DragUpdateDetails d) onMoveUpdate;
-  final VoidCallback onMoveEnd;
-  final bool isMoving;
-  final Function(MondrianLeafMoveTargetDropPosition position) onDrop;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MondrianLeafMoveHandle(
-          dragIndicator: Container(
-            height: 100,
-            width: 100,
-            color: Colors.white.withAlpha(100),
-          ),
-          child: Container(
-            height: 10,
-            color: Colors.black,
-          ),
-          onMoveEnd: onMoveEnd,
-          onMoveStart: onMoveStart,
-          onMoveUpdate: onMoveUpdate,
-        ),
-        Expanded(
-          child: MondrianLeafMoveTarget(
-            onDrop: onDrop,
-            isActive: isMoving,
-            targetPositionIndicator: Container(
-              color: Colors.red,
-            ),
-            child: Center(
-              child: AutoSizeText(text: text),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 /*
 
