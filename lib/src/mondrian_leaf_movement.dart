@@ -75,6 +75,7 @@ class MondrianLeafMoveHandle extends StatefulWidget {
     required this.onMoveStart,
     required this.onMoveUpdate,
     required this.onMoveEnd,
+    required this.leafPathOfMoving,
   }) : super(key: key);
 
   /// The widget that should be draggable.
@@ -95,6 +96,9 @@ class MondrianLeafMoveHandle extends StatefulWidget {
 
   /// Called when the moving ends.
   final VoidCallback onMoveEnd;
+
+  /// The path to the leaf that is beeing dragged
+  final MondrianTreePathWithTabIndexIfAny leafPathOfMoving;
 
   @override
   State<MondrianLeafMoveHandle> createState() => _MondrianLeafMoveHandleState();
@@ -154,7 +158,7 @@ class _MondrianLeafMoveHandleState extends State<MondrianLeafMoveHandle> {
               final metaData = target.metaData;
               if (metaData is MondrianLeafMoveTargetMetaData) {
                 /// Call the callback registered in the [MondrianLeafMoveTarget]
-                metaData.onDrop();
+                metaData.onDrop(widget.leafPathOfMoving);
               }
             }
           }
@@ -174,7 +178,7 @@ class _MondrianLeafMoveHandleState extends State<MondrianLeafMoveHandle> {
 
 // ============================================================================= DROP TARGET
 class MondrianLeafMoveTargetMetaData {
-  final VoidCallback onDrop;
+  final void Function(MondrianTreePathWithTabIndexIfAny leafPathOfMoving) onDrop;
 
   MondrianLeafMoveTargetMetaData({
     required this.onDrop,
@@ -202,7 +206,13 @@ class MondrianLeafMoveTarget extends StatelessWidget {
   final Widget targetPositionIndicator;
 
   /// The callback that will be executed if a [MondrianLeafMoveHandle] is dropped on this target.
-  final Function(MondrianLeafMoveTargetDropPosition position) onDrop;
+  ///
+  /// [position] is the side on which the handle was dropped.
+  /// [leafPathOfMoving] is the path to the leaf that was dropped.
+  final Function(
+    MondrianLeafMoveTargetDropPosition position,
+    MondrianTreePathWithTabIndexIfAny leafPathOfMoving,
+  ) onDrop;
 
   static const _targetLarge = 30.0;
   static const _targetSmall = 20.0;
@@ -211,11 +221,11 @@ class MondrianLeafMoveTarget extends StatelessWidget {
   Widget _target({
     required double width,
     required double height,
-    required MondrianLeafMoveTargetDropPosition position,
+    required MondrianLeafMoveTargetDropPosition positionOfDrop,
   }) =>
       MetaData(
         metaData: MondrianLeafMoveTargetMetaData(
-          onDrop: () => onDrop(position),
+          onDrop: (leafPathOfMoving) => onDrop(positionOfDrop, leafPathOfMoving),
         ),
         child: MouseRegion(
           cursor: SystemMouseCursors.cell,
@@ -242,7 +252,7 @@ class MondrianLeafMoveTarget extends StatelessWidget {
                 children: [
                   // TOP
                   _target(
-                    position: MondrianLeafMoveTargetDropPosition.top,
+                    positionOfDrop: MondrianLeafMoveTargetDropPosition.top,
                     width: _targetLarge,
                     height: _targetSmall,
                   ),
@@ -253,21 +263,21 @@ class MondrianLeafMoveTarget extends StatelessWidget {
                     children: [
                       // LEFT
                       _target(
-                        position: MondrianLeafMoveTargetDropPosition.left,
+                        positionOfDrop: MondrianLeafMoveTargetDropPosition.left,
                         width: _targetSmall,
                         height: _targetLarge,
                       ),
                       _targetGap,
                       // CENTER
                       _target(
-                        position: MondrianLeafMoveTargetDropPosition.center,
+                        positionOfDrop: MondrianLeafMoveTargetDropPosition.center,
                         width: _targetLarge,
                         height: _targetLarge,
                       ),
                       _targetGap,
                       // RIGHT
                       _target(
-                        position: MondrianLeafMoveTargetDropPosition.right,
+                        positionOfDrop: MondrianLeafMoveTargetDropPosition.right,
                         width: _targetSmall,
                         height: _targetLarge,
                       ),
@@ -276,7 +286,7 @@ class MondrianLeafMoveTarget extends StatelessWidget {
                   _targetGap,
                   // BOTTOM
                   _target(
-                    position: MondrianLeafMoveTargetDropPosition.bottom,
+                    positionOfDrop: MondrianLeafMoveTargetDropPosition.bottom,
                     width: _targetLarge,
                     height: _targetSmall,
                   ),

@@ -178,17 +178,6 @@ class _MondrianWidgetState extends State<MondrianWidget> {
   /// Note that the drop target is not disabled for tab leafs.
   MondrianTreeLeafId? _movingLeaf;
 
-  /// The path of the [_movingLeaf].
-  ///
-  /// Kepts around after the moveDragIndicator has been dropped again and [_movingLeaf] has been reset to `null`.
-  ///
-  /// This is needed to initiate the data-move inside the tree on the drop target.
-  /// Will be reset after the data-move has been initiated.
-  MondrianTreePath? _lastMovingPath;
-
-  /// Like [_lastMovingPath] but as an addition for tabs.
-  int? _lastMovingTabIndex;
-
   // =========================================================================== RESIZE
   void _onResize(
     MondrianTreePath pathToParent,
@@ -218,8 +207,6 @@ class _MondrianWidgetState extends State<MondrianWidget> {
 
   void _onMoveStart(MondrianTreeLeafId leafId, MondrianTreePath leafPath, int? tabIndex) {
     _movingLeaf = leafId;
-    _lastMovingPath = leafPath;
-    _lastMovingTabIndex = tabIndex;
     setState(() {});
   }
 
@@ -228,16 +215,17 @@ class _MondrianWidgetState extends State<MondrianWidget> {
     setState(() {});
   }
 
-  void _onDrop(
-    MondrianLeafMoveTargetDropPosition targetDropPosition,
-    MondrianTreePath targetLeafPath,
-  ) {
+  void _onDrop({
+    required MondrianLeafMoveTargetDropPosition targetDropPosition,
+    required MondrianTreePath targetLeafPath,
+    required MondrianTreePathWithTabIndexIfAny sourceLeafPath,
+  }) {
     widget.onUpdateTree(
       widget.tree.moveLeaf(
         targetPath: targetLeafPath,
         targetSide: targetDropPosition,
-        sourcePath: _lastMovingPath!,
-        tabIndexIfAny: _lastMovingTabIndex,
+        sourcePath: sourceLeafPath.path,
+        tabIndexIfAny: sourceLeafPath.tabIndexIfAny,
       ),
     );
   }
@@ -269,6 +257,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                     // TABS ----------------------------------------------------
                     for (int i = 0; i < tabLeaf.tabs.length; i++) ...[
                       MondrianLeafMoveHandle(
+                        leafPathOfMoving: MondrianTreePathWithTabIndexIfAny(
+                          path: leafPath,
+                          tabIndexIfAny: i,
+                        ),
                         dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, i) ?? _defaultMoveDragIndicator,
                         child: GestureDetector(
                           onTap: () => _setActiveTab(leafPath, i),
@@ -288,6 +280,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                     ],
                     // TAB OVERHANG --------------------------------------------
                     MondrianLeafMoveHandle(
+                      leafPathOfMoving: MondrianTreePathWithTabIndexIfAny(
+                        path: leafPath,
+                        tabIndexIfAny: null,
+                      ),
                       dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
                       child: SizedBox(
                         width: max(
@@ -310,7 +306,11 @@ class _MondrianWidgetState extends State<MondrianWidget> {
           // ACTUAL WIDGET -----------------------------------------------------
           Expanded(
             child: MondrianLeafMoveTarget(
-              onDrop: (pos) => _onDrop(pos, leafPath),
+              onDrop: (pos, sourceLeafPath) => _onDrop(
+                targetLeafPath: leafPath,
+                targetDropPosition: pos,
+                sourceLeafPath: sourceLeafPath,
+              ),
               isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
               targetPositionIndicator: widget.targetPositionIndicator,
               child: widget.buildLeaf(leafPath, leafNode.activeTabIndex),
@@ -328,6 +328,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
         SizedBox(
           height: widget.leafBarHeight,
           child: MondrianLeafMoveHandle(
+            leafPathOfMoving: MondrianTreePathWithTabIndexIfAny(
+              path: leafPath,
+              tabIndexIfAny: null,
+            ),
             dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
             child: widget.buildLeafBar?.call(leafPath) ?? _buildDefaultLeafBar(leafNode.id),
             onMoveEnd: _onMoveEnd,
@@ -338,7 +342,11 @@ class _MondrianWidgetState extends State<MondrianWidget> {
         // ACTUAL WIDGET -----------------------------------------------------
         Expanded(
           child: MondrianLeafMoveTarget(
-            onDrop: (pos) => _onDrop(pos, leafPath),
+            onDrop: (pos, sourceLeafPath) => _onDrop(
+              targetLeafPath: leafPath,
+              targetDropPosition: pos,
+              sourceLeafPath: sourceLeafPath,
+            ),
             isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
             targetPositionIndicator: widget.targetPositionIndicator,
             child: widget.buildLeaf(leafPath, null),
