@@ -592,7 +592,7 @@ class _MondrianNode extends StatelessWidget {
 
   /// The current node of the tree beeing build.
   /// Can either be a leaf or a branch.
-  final MondrianNodeAbst node;
+  final MondrianTreeNodeAbst node;
 
   /// The axis of the parent branch.
   /// Determines whether the next branch will layout its children as [Row] or [Column].

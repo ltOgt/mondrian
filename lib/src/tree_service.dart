@@ -388,7 +388,7 @@ class MondrianTreeManipulationService {
     );
   }
 
-  static double _sumDistanceToOne(List<MondrianNodeAbst> list) =>
+  static double _sumDistanceToOne(List<MondrianTreeNodeAbst> list) =>
       (1.0 - list.fold<double>(0.0, (double acc, ele) => acc + ele.fraction)).abs();
 
   // ==================================================================================================== TREE PATH FROM ID
@@ -404,7 +404,7 @@ class MondrianTreeManipulationService {
 
   static MondrianTreePathWithTabIndexIfAny? _treePathFromId(
     MondrianTreeLeafId id,
-    MondrianNodeAbst node,
+    MondrianTreeNodeAbst node,
     List<int> path,
   ) {
     if (node is MondrianTreeBranch) {
@@ -559,7 +559,7 @@ class MondrianTreeManipulationService {
         //         cutPrecision(child.fraction + removedFractionToDistribute),
         //       ),
         // ];
-        List<MondrianNodeAbst> rootChildrenWithoutSourceNode = [];
+        List<MondrianTreeNodeAbst> rootChildrenWithoutSourceNode = [];
         for (final child in root.children) {
           if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
             // skip the source to remove it
@@ -632,7 +632,7 @@ class MondrianTreeManipulationService {
         //         cutPrecision(child.fraction + removedFractionToDistribute),
         //       ),
         // ];
-        List<MondrianNodeAbst> parentChildrenWithoutSourceNode = [];
+        List<MondrianTreeNodeAbst> parentChildrenWithoutSourceNode = [];
         for (final child in parent.children) {
           if (child is MondrianTreeLeaf && child.id == sourceNode.id) {
             // Skip source child
@@ -777,7 +777,7 @@ class MondrianMarshalSvc {
   }
 
   // =========================================================================== NODE - ABST
-  static Map<String, Object> encNodeAbst(MondrianNodeAbst node) {
+  static Map<String, Object> encNodeAbst(MondrianTreeNodeAbst node) {
     if (node is MondrianTreeBranch) {
       return {
         "type": "branch",
@@ -799,7 +799,7 @@ class MondrianMarshalSvc {
     throw "Unknown type: ${node.runtimeType}";
   }
 
-  static MondrianNodeAbst decNodeAbst(Map m) {
+  static MondrianTreeNodeAbst decNodeAbst(Map m) {
     final String type = m["type"];
     final Map data = m["data"];
 

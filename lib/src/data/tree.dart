@@ -6,13 +6,13 @@ import 'package:mondrian/src/utils.dart';
 
 // ============================================================================= TYPEDEF
 
-typedef NodeUpdater = MondrianNodeAbst Function(MondrianNodeAbst node);
+typedef NodeUpdater = MondrianTreeNodeAbst Function(MondrianTreeNodeAbst node);
 
 // ============================================================================= TREE
 
-/// The tree of [MondrianNodeAbst]s specifying the partition of the window.
+/// The tree of [MondrianTreeNodeAbst]s specifying the partition of the window.
 class MondrianTree {
-  final MondrianNodeAbst rootNode;
+  final MondrianTreeNodeAbst rootNode;
   final MondrianAxis rootAxis;
 
   const MondrianTree({
@@ -40,7 +40,7 @@ class MondrianTree {
     throw "Unknown type ${rootNode.runtimeType}";
   }
 
-  MondrianNodeAbst extractPath(MondrianTreePath path) {
+  MondrianTreeNodeAbst extractPath(MondrianTreePath path) {
     if (rootNode is MondrianTreeLeaf) {
       assert(path.isEmpty);
       return rootNode;
@@ -109,15 +109,15 @@ class MondrianTree {
 // ============================================================================= ABSTRACT BASE NODE
 
 /// A part of the [MondrianTree], either a [MondrianTreeBranch] or a [MondrianTreeLeaf].
-abstract class MondrianNodeAbst {
+abstract class MondrianTreeNodeAbst {
   /// The fraction of the parent slice taken up by this slice
   double get fraction;
 
-  const MondrianNodeAbst();
+  const MondrianTreeNodeAbst();
 
-  MondrianNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode);
+  MondrianTreeNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode);
 
-  MondrianNodeAbst updateFraction(double newFraction);
+  MondrianTreeNodeAbst updateFraction(double newFraction);
 }
 
 /// Id to identify a [MondrianTreeLeaf]
@@ -144,7 +144,7 @@ class MondrianTreeLeafId {
 /// Leaf in the tree, represents a single widget.
 ///
 /// Can be placed inside [MondrianTreeBranch].
-class MondrianTreeLeaf extends MondrianNodeAbst {
+class MondrianTreeLeaf extends MondrianTreeNodeAbst {
   @override
   final double fraction;
 
@@ -158,13 +158,13 @@ class MondrianTreeLeaf extends MondrianNodeAbst {
   });
 
   @override
-  MondrianNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode) {
+  MondrianTreeNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode) {
     assert(path.isEmpty, "Arrived at leaf, but path is not yet empty: $path");
     return updateNode(this);
   }
 
   @override
-  MondrianNodeAbst updateFraction(double newFraction) => MondrianTreeLeaf(id: id, fraction: newFraction);
+  MondrianTreeNodeAbst updateFraction(double newFraction) => MondrianTreeLeaf(id: id, fraction: newFraction);
 
   @override
   bool operator ==(Object other) {
@@ -223,7 +223,7 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
       );
 
   @override
-  MondrianNodeAbst updateFraction(double newFraction) {
+  MondrianTreeNodeAbst updateFraction(double newFraction) {
     return MondrianTreeTabLeaf._(
       id: id,
       fraction: newFraction,
@@ -252,12 +252,12 @@ class MondrianTreeTabLeaf extends MondrianTreeLeaf {
 ///
 /// The axis direction of this branch depends on the [MondrianTree.initialAxis] and the depth of this branch.
 /// § Axis.horizontal => Row => Column => Row => ...
-class MondrianTreeBranch extends MondrianNodeAbst {
+class MondrianTreeBranch extends MondrianTreeNodeAbst {
   @override
   final double fraction;
 
   /// The children contained within this branch.
-  final List<MondrianNodeAbst> children;
+  final List<MondrianTreeNodeAbst> children;
 
   const MondrianTreeBranch({
     required this.fraction,
@@ -265,7 +265,7 @@ class MondrianTreeBranch extends MondrianNodeAbst {
   });
 
   @override
-  MondrianNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode) {
+  MondrianTreeNodeAbst updatePath(MondrianTreePath path, NodeUpdater updateNode) {
     if (path.isEmpty) {
       return updateNode(this);
     }
@@ -282,7 +282,7 @@ class MondrianTreeBranch extends MondrianNodeAbst {
     );
   }
 
-  MondrianNodeAbst extractPath(MondrianTreePath path) {
+  MondrianTreeNodeAbst extractPath(MondrianTreePath path) {
     final child = children[path.first];
     final remainder = path.skip(1).toList();
 
@@ -296,7 +296,8 @@ class MondrianTreeBranch extends MondrianNodeAbst {
   }
 
   @override
-  MondrianNodeAbst updateFraction(double newFraction) => MondrianTreeBranch(children: children, fraction: newFraction);
+  MondrianTreeNodeAbst updateFraction(double newFraction) =>
+      MondrianTreeBranch(children: children, fraction: newFraction);
 
   MondrianTreeBranch updateChildFraction({required int index, required double newFraction}) {
     final child1 = children[index];
@@ -341,7 +342,7 @@ class MondrianTreeBranch extends MondrianNodeAbst {
 
   MondrianTreeBranch copyWith({
     double? fraction,
-    List<MondrianNodeAbst>? children,
+    List<MondrianTreeNodeAbst>? children,
   }) {
     return MondrianTreeBranch(
       fraction: fraction ?? this.fraction,
