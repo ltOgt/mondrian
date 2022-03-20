@@ -77,6 +77,18 @@ class MondrianTree {
         targetSide: targetSide,
         newLeafId: newLeafId,
       );
+
+  MondrianTree deleteLeaf({
+    required MondrianTreePath sourcePath,
+    // needed on deletion of tabs, since sourcePath still points to the parent (the tab leaf)
+    required int? tabIndexIfAny,
+  }) =>
+      MondrianTreeManipulationService.deleteLeaf(
+        tree: this,
+        sourcePath: sourcePath,
+        tabIndexIfAny: tabIndexIfAny,
+      );
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

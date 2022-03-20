@@ -1077,6 +1077,239 @@ void main() {
       expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
     });
   });
+
+  group("Remove Leaf", () {
+    test("Removing active tab from tab group decreases active tab if not zero", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 1,
+          tabs: [
+            const MondrianTreeLeafId("Tab 1"),
+            const MondrianTreeLeafId("Tab 2"),
+            const MondrianTreeLeafId("Tab 3"),
+          ],
+        ),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 0,
+          tabs: [
+            const MondrianTreeLeafId("Tab 1"),
+            const MondrianTreeLeafId("Tab 3"),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [],
+        tabIndexIfAny: 1,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Removing active tab <zero> from tab group keeps active at zero", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 0,
+          tabs: [
+            const MondrianTreeLeafId("Tab 1"),
+            const MondrianTreeLeafId("Tab 2"),
+            const MondrianTreeLeafId("Tab 3"),
+          ],
+        ),
+      );
+
+      final expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 0,
+          tabs: [
+            const MondrianTreeLeafId("Tab 2"),
+            const MondrianTreeLeafId("Tab 3"),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [],
+        tabIndexIfAny: 0,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Removing second-last tab from tab group moves last tab into parent with tab-groups fraction", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            const MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+            MondrianTreeTabLeaf(
+              fraction: .8,
+              activeTabIndex: 0,
+              tabs: [
+                const MondrianTreeLeafId("Tab 1"),
+                const MondrianTreeLeafId("Tab 2"),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Tab 1"), fraction: .8),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [1],
+        tabIndexIfAny: 1,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Removing child from branch adds its fraction to the remaining members", () {
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 2"), fraction: .2),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 3"), fraction: .6),
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .5),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 2"), fraction: .5),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [2],
+        tabIndexIfAny: null,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("Removing second-last child from branch moves last child into parent with branches fraction", () {
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+            MondrianTreeBranch(
+              fraction: .8,
+              children: [
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Child 2"), fraction: .4),
+                MondrianTreeLeaf(id: MondrianTreeLeafId("Child 3"), fraction: .6),
+              ],
+            )
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 1"), fraction: .2),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 3"), fraction: .8),
+          ],
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [1, 0],
+        tabIndexIfAny: null,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("ROOT - Removing second-last child from root-branch sets last child as root and flips root orientation", () {
+      const initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 2"), fraction: .4),
+            MondrianTreeLeaf(id: MondrianTreeLeafId("Child 3"), fraction: .6),
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeLeaf(id: MondrianTreeLeafId("Child 3"), fraction: 1),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [0],
+        tabIndexIfAny: null,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+
+    test("ROOT - Removing second-last tab from tab group moves last tab into parent with tab-groups fraction", () {
+      final initialTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeTabLeaf(
+          fraction: 1,
+          activeTabIndex: 0,
+          tabs: [
+            const MondrianTreeLeafId("Tab 1"),
+            const MondrianTreeLeafId("Tab 2"),
+          ],
+        ),
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeLeaf(
+          id: MondrianTreeLeafId("Tab 1"),
+          fraction: 1,
+        ),
+      );
+
+      final actualTreeAfterUpdate = initialTree.deleteLeaf(
+        sourcePath: [],
+        tabIndexIfAny: 1,
+      );
+
+      expect(actualTreeAfterUpdate.encode(), equals(expectedTree.encode()));
+    });
+  });
+
+  // TODO refactor, this is pretty much just a "resize" test from start of development
   test('Update Tree', () {
     const initialTree = MondrianTree(
       rootAxis: MondrianAxis.vertical,

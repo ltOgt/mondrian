@@ -691,6 +691,15 @@ class MondrianTreeManipulationService {
       }
     });
   }
+
+  static MondrianTree deleteLeaf({
+    required MondrianTree tree,
+    required MondrianTreePath sourcePath,
+    int? tabIndexIfAny,
+  }) {
+    // TODO implement
+    return tree;
+  }
 }
 
 class MondrianMarshalSvc {
