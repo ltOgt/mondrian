@@ -5,8 +5,6 @@ import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
 import 'package:mondrian/src/debug.dart';
 
-// TODO consider adding the actual nodes to the callbacks as well, i think they should be available to the caller of the callback anyways => no need for extra lookup
-
 // TODO need to add "can move" flag; either into the tree, via a callback or via a set of ids
 
 // TODO need to disable move targets iff too small already
@@ -58,8 +56,8 @@ typedef MoveDragIndicatorBuilder = Widget Function(
 /// If the leaf is a [MondrianTreeTabLeaf], the [tabIndex] will be set as well.
 /// {@endtemplate}
 typedef LeafBuilder = Widget Function(
-  MondrianTreePath leafPath,
-  int? tabIndex,
+  MondrianTreePathWithTabIndexIfAny leafPath,
+  MondrianTreeLeafId leafNodeId,
 );
 
 /// {@template LeafBarBuilder}
@@ -69,6 +67,7 @@ typedef LeafBuilder = Widget Function(
 /// {@endtemplate}
 typedef LeafBarBuilder = Widget Function(
   MondrianTreePath leafPath,
+  MondrianTreeLeafId leafId,
 );
 
 /// {@template DropTargetMetaDataWrapper}
@@ -455,7 +454,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
               isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
               buildTargetPositionIndicators:
                   widget.buildTargetDropIndicators ?? MondrianWidget.defaultBuildTargetDropIndicatorsGenerator(),
-              child: widget.buildLeaf(leafPath, leafNode.activeTabIndex),
+              child: widget.buildLeaf(
+                MondrianTreePathWithTabIndexIfAny(path: leafPath, tabIndexIfAny: leafNode.activeTabIndex),
+                leafNode.activeTab,
+              ),
             ),
           ),
         ],
@@ -475,7 +477,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
               tabIndexIfAny: null,
             ),
             dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
-            child: widget.buildLeafBar?.call(leafPath) ?? _buildDefaultLeafBar(leafNode.id),
+            child: widget.buildLeafBar?.call(leafPath, leafNode.id) ?? _buildDefaultLeafBar(leafNode.id),
             onMoveStart: () {
               widget.onMoveLeafStart?.call(
                 MondrianTreePathWithTabIndexIfAny(
@@ -516,7 +518,13 @@ class _MondrianWidgetState extends State<MondrianWidget> {
             isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
             buildTargetPositionIndicators:
                 widget.buildTargetDropIndicators ?? MondrianWidget.defaultBuildTargetDropIndicatorsGenerator(),
-            child: widget.buildLeaf(leafPath, null),
+            child: widget.buildLeaf(
+              MondrianTreePathWithTabIndexIfAny(
+                path: leafPath,
+                tabIndexIfAny: null,
+              ),
+              leafNode.id,
+            ),
           ),
         ),
       ],

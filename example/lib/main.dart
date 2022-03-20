@@ -118,13 +118,12 @@ class _MyAppState extends State<MyApp> {
           },
           buildLeafBar: isBaseExample
               ? null
-              : (leafPath) {
-                  final _leaf = (mondrianExampleTree.extractPath(leafPath) as MondrianTreeLeaf);
+              : (leafPath, leafId) {
                   return Container(
                       color: Colors.black.withAlpha(5),
                       child: Center(
                         child: AutoSizeText(
-                          text: _leaf.id.value,
+                          text: leafId.value,
                         ),
                       ));
                 },
@@ -133,14 +132,7 @@ class _MyAppState extends State<MyApp> {
                 ? const DecoratedBox(decoration: BoxDecoration(color: Color(0xAAFFFFFF)))
                 : const DecoratedBox(decoration: BoxDecoration(color: Color(0xAA000000))),
           ),
-          buildLeaf: (path, tabIndex) {
-            final tree = isBaseExample ? baseExampleTree : mondrianExampleTree;
-            final _leaf = (tree.extractPath(path) as MondrianTreeLeaf);
-
-            final leafId = tabIndex == null //
-                ? _leaf.id
-                : (_leaf as MondrianTreeTabLeaf).tabs[tabIndex];
-
+          buildLeaf: (leafPath, leafId) {
             if (isBaseExample) {
               return Center(
                 child: AutoSizeText(
