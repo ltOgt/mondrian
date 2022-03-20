@@ -190,7 +190,7 @@ class MondrianLeafMoveTarget extends StatelessWidget {
     Key? key,
     required this.isActive,
     required this.child,
-    required this.targetPositionIndicator,
+    required this.buildTargetPositionIndicators,
     required this.onDrop,
   }) : super(key: key);
 
@@ -202,8 +202,8 @@ class MondrianLeafMoveTarget extends StatelessWidget {
   /// The widget above which the move target should appear
   final Widget child;
 
-  /// The widget beeing shown for each of the [MondrianLeafMoveTargetDropPosition]s.
-  final Widget targetPositionIndicator;
+  /// {@macro DropTargetWidgetBuilder}
+  final DropTargetWidgetBuilder buildTargetPositionIndicators;
 
   /// The callback that will be executed if a [MondrianLeafMoveHandle] is dropped on this target.
   ///
@@ -214,29 +214,6 @@ class MondrianLeafMoveTarget extends StatelessWidget {
     MondrianTreePathWithTabIndexIfAny leafPathOfMoving,
   ) onDrop;
 
-  static const _targetLarge = 30.0;
-  static const _targetSmall = 20.0;
-  static const _targetGap = SizedBox.square(dimension: 5.0);
-
-  Widget _target({
-    required double width,
-    required double height,
-    required MondrianLeafMoveTargetDropPosition positionOfDrop,
-  }) =>
-      MetaData(
-        metaData: MondrianLeafMoveTargetMetaData(
-          onDrop: (leafPathOfMoving) => onDrop(positionOfDrop, leafPathOfMoving),
-        ),
-        child: MouseRegion(
-          cursor: SystemMouseCursors.cell,
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: targetPositionIndicator,
-          ),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     if (!isActive) return child;
@@ -246,51 +223,15 @@ class MondrianLeafMoveTarget extends StatelessWidget {
         return Stack(
           children: [
             Positioned.fill(child: child),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // TOP
-                  _target(
-                    positionOfDrop: MondrianLeafMoveTargetDropPosition.top,
-                    width: _targetLarge,
-                    height: _targetSmall,
-                  ),
-                  _targetGap,
-                  // LEFT CENTER RIGHT
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // LEFT
-                      _target(
-                        positionOfDrop: MondrianLeafMoveTargetDropPosition.left,
-                        width: _targetSmall,
-                        height: _targetLarge,
-                      ),
-                      _targetGap,
-                      // CENTER
-                      _target(
-                        positionOfDrop: MondrianLeafMoveTargetDropPosition.center,
-                        width: _targetLarge,
-                        height: _targetLarge,
-                      ),
-                      _targetGap,
-                      // RIGHT
-                      _target(
-                        positionOfDrop: MondrianLeafMoveTargetDropPosition.right,
-                        width: _targetSmall,
-                        height: _targetLarge,
-                      ),
-                    ],
-                  ),
-                  _targetGap,
-                  // BOTTOM
-                  _target(
-                    positionOfDrop: MondrianLeafMoveTargetDropPosition.bottom,
-                    width: _targetLarge,
-                    height: _targetSmall,
-                  ),
-                ],
+            buildTargetPositionIndicators(
+              (position, child) => MetaData(
+                metaData: MondrianLeafMoveTargetMetaData(
+                  onDrop: (leafPathOfMoving) => onDrop(position, leafPathOfMoving),
+                ),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.cell,
+                  child: child,
+                ),
               ),
             ),
           ],

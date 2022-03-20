@@ -67,6 +67,22 @@ typedef LeafBarBuilder = Widget Function(
   MondrianTreePath leafPath,
 );
 
+/// {@template DropTargetMetaDataWrapper}
+/// Used inside [DropTargetWidgetBuilder] to wrap a user supplied widget with the internally required metadata.
+/// {@endtemplate}
+typedef DropTargetMetaDataWrapper = Widget Function(
+  MondrianLeafMoveTargetDropPosition position,
+  Widget child,
+);
+
+/// {@template DropTargetWidgetBuilder}
+/// Builder for the overlay used to drop moving leafs onto other leaf targets.
+///
+/// - [wrap]:
+///   {@macro DropTargetMetaDataWrapper}
+/// {@endtemplate}
+typedef DropTargetWidgetBuilder = Widget Function(DropTargetMetaDataWrapper wrap);
+
 // ============================================================================= WIDGET - MONDRIAN PUBLIC API
 
 /// Mondrian Window Manager.
@@ -89,11 +105,7 @@ class MondrianWidget extends StatefulWidget {
     this.buildMoveDragIndicator,
     this.resizeDraggerColor = const Color(0xFFAAAAFF),
     this.resizeDraggerWidth = 2,
-    this.targetPositionIndicator = const DecoratedBox(
-      decoration: BoxDecoration(
-        color: Color(0xAAFFFFFF),
-      ),
-    ),
+    this.buildTargetDropIndicators,
     this.onMoveLeafStart,
     this.onMoveLeafUpdate,
     this.onMoveLeafEnd,
@@ -158,14 +170,10 @@ class MondrianWidget extends StatefulWidget {
   final Color resizeDraggerColor;
   final double resizeDraggerWidth;
 
-  // TODO id really want to expose a builder for this
-  // probably like `Widget targetBuilder(Widget _metaDataWrapper(Widget child, Position pos))`
-  // which could be used like
-  // - targetBuilder(_wrap) => _wrap(MyWidgetOnlyForCenter(), pos.center),
-  // - targetBuilder(_wrap) => Row(children: [_wrap(MyLeft(), pos.left), _wrap(MyCenter(), pos.center), _wrap(MyRight(), pos.right),])
-  // etc..
-  // this allows for custom widgets without requiring the user to add the meta data etc themselves
-  final Widget targetPositionIndicator;
+  /// {@macro DropTargetWidgetBuilder}
+  ///
+  /// Also see [MondrianWidget.defaultBuildTargetDropIndicatorsGenerator] for simple adjustment of the default indicator overlay
+  final DropTargetWidgetBuilder? buildTargetDropIndicators;
 
   final void Function(MondrianTreePathWithTabIndexIfAny leafPath)? onMoveLeafStart;
   final void Function(MondrianTreePathWithTabIndexIfAny leafPath, DragUpdateDetails dragUpdateDetails)?
@@ -174,6 +182,88 @@ class MondrianWidget extends StatefulWidget {
 
   @override
   State<MondrianWidget> createState() => _MondrianWidgetState();
+
+  /// Execute this function with an optional [simpleDropTarget] to generate the default [buildTargetDropIndicators].
+  static DropTargetWidgetBuilder defaultBuildTargetDropIndicatorsGenerator({Widget? simpleDropTarget}) {
+    const Widget defaultSimpleDropTarget = DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color(0xAAFFFFFF),
+      ),
+    );
+
+    Widget _defaultBuildTargetDropIndicators(DropTargetMetaDataWrapper wrap) {
+      const _targetLarge = 30.0;
+      const _targetSmall = 20.0;
+      const _targetGap = SizedBox.square(dimension: 5.0);
+
+      final Widget _targetIndicator = simpleDropTarget ?? defaultSimpleDropTarget;
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // TOP
+            wrap(
+              MondrianLeafMoveTargetDropPosition.top,
+              SizedBox(
+                width: _targetLarge,
+                height: _targetSmall,
+                child: _targetIndicator,
+              ),
+            ),
+            _targetGap,
+            // LEFT CENTER RIGHT
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // LEFT
+                wrap(
+                  MondrianLeafMoveTargetDropPosition.left,
+                  SizedBox(
+                    width: _targetSmall,
+                    height: _targetLarge,
+                    child: _targetIndicator,
+                  ),
+                ),
+                _targetGap,
+                // CENTER
+                wrap(
+                  MondrianLeafMoveTargetDropPosition.center,
+                  SizedBox(
+                    width: _targetLarge,
+                    height: _targetLarge,
+                    child: _targetIndicator,
+                  ),
+                ),
+                _targetGap,
+                // RIGHT
+                wrap(
+                  MondrianLeafMoveTargetDropPosition.right,
+                  SizedBox(
+                    width: _targetSmall,
+                    height: _targetLarge,
+                    child: _targetIndicator,
+                  ),
+                ),
+              ],
+            ),
+            _targetGap,
+            // BOTTOM
+            wrap(
+              MondrianLeafMoveTargetDropPosition.bottom,
+              SizedBox(
+                width: _targetLarge,
+                height: _targetSmall,
+                child: _targetIndicator,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _defaultBuildTargetDropIndicators;
+  }
 }
 
 class _MondrianWidgetState extends State<MondrianWidget> {
@@ -359,7 +449,8 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                 sourceLeafPath: sourceLeafPath,
               ),
               isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
-              targetPositionIndicator: widget.targetPositionIndicator,
+              buildTargetPositionIndicators:
+                  widget.buildTargetDropIndicators ?? MondrianWidget.defaultBuildTargetDropIndicatorsGenerator(),
               child: widget.buildLeaf(leafPath, leafNode.activeTabIndex),
             ),
           ),
@@ -419,7 +510,8 @@ class _MondrianWidgetState extends State<MondrianWidget> {
               sourceLeafPath: sourceLeafPath,
             ),
             isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
-            targetPositionIndicator: widget.targetPositionIndicator,
+            buildTargetPositionIndicators:
+                widget.buildTargetDropIndicators ?? MondrianWidget.defaultBuildTargetDropIndicatorsGenerator(),
             child: widget.buildLeaf(leafPath, null),
           ),
         ),

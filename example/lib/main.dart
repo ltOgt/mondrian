@@ -57,17 +57,19 @@ class _MyAppState extends State<MyApp> {
             // TODO actually still need to check if its a tab leaf and whether only a tab is moved
             if (isLeafMoving && effectiveTree.rootNode is! MondrianTreeLeaf)
               Container(
-                width: 100,
-                height: 100,
+                width: 50,
+                height: 50,
                 color: Colors.red,
                 child: MondrianLeafMoveTarget(
                   isActive: true,
-                  // TODO here a single overlay would be best, good usecase for the proposed builder
-                  targetPositionIndicator: Container(
-                    width: 20,
-                    height: 20,
-                    color: Colors.red.withAlpha(40),
-                  ),
+                  buildTargetPositionIndicators: (wrap) {
+                    return wrap(
+                      MondrianLeafMoveTargetDropPosition.center,
+                      const Center(
+                        child: Icon(Icons.delete),
+                      ),
+                    );
+                  },
                   onDrop: (pos, sourceLeafPath) {
                     if (isBaseExample) {
                       baseExampleTree = baseExampleTree.deleteLeaf(
@@ -126,9 +128,11 @@ class _MyAppState extends State<MyApp> {
                         ),
                       ));
                 },
-          targetPositionIndicator: isBaseExample //
-              ? const DecoratedBox(decoration: BoxDecoration(color: Color(0xAAFFFFFF)))
-              : const DecoratedBox(decoration: BoxDecoration(color: Color(0xAA000000))),
+          buildTargetDropIndicators: MondrianWidget.defaultBuildTargetDropIndicatorsGenerator(
+            simpleDropTarget: isBaseExample //
+                ? const DecoratedBox(decoration: BoxDecoration(color: Color(0xAAFFFFFF)))
+                : const DecoratedBox(decoration: BoxDecoration(color: Color(0xAA000000))),
+          ),
           buildLeaf: (path, tabIndex) {
             final tree = isBaseExample ? baseExampleTree : mondrianExampleTree;
             final _leaf = (tree.extractPath(path) as MondrianTreeLeaf);
