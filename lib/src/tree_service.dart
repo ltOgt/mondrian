@@ -129,6 +129,33 @@ class MondrianTreeManipulationService {
     }
   }
 
+  /// Remove [tabToRemove] from [tabLeaf].
+  ///
+  /// Returns [MondrianTreeTabLeaf] with active tab moved one to the left if possible.
+  /// If only one tab remains, returns a non-tab [MondrianTreeLeaf] with that id instead.
+  static MondrianTreeLeaf _removeLeafFromTab({
+    required MondrianTreeTabLeaf tabLeaf,
+    required MondrianTreeLeafId tabToRemove,
+  }) {
+    final tabsWithoutMoved = [
+      for (final leafId in tabLeaf.tabs)
+        if (leafId != tabToRemove) leafId,
+    ];
+
+    if (tabsWithoutMoved.length == 1) {
+      // return last remaining child as new leaf
+      return MondrianTreeLeaf(
+        id: tabsWithoutMoved.first,
+        fraction: tabLeaf.fraction,
+      );
+    }
+
+    return tabLeaf.copyWith(
+      tabs: tabsWithoutMoved,
+      activeTabIndex: max(0, tabLeaf.activeTabIndex - 1),
+    );
+  }
+
   static MondrianTree moveLeaf({
     required MondrianTree tree,
     required MondrianTreePath sourcePath,
@@ -214,14 +241,9 @@ class MondrianTreeManipulationService {
 
     bool skipRemovalForSourceInSameParentAsTarget = false;
 
-    // 1) insert
     // TODO: when splitting a targets fraction with the newly added source, we still need to ensure that the fractions dont get too small
     // TODO: actually, checking for minumum size in mondrian does not make much sense, need to check for minimum fraction instead
     // TODO: depending on the min fraction, this also imposes a limit on how many children a branch can have
-
-    // ============================================================================================================ <
-    // TODO: only unhandled center drop case is if the resulting tabLeaf becomes the new root
-    // ============================================================================================================ >
 
     // (1) INSERTION ===========================================================
     // (1-A) INTO CENTER -------------------------------------------------------
@@ -358,24 +380,9 @@ class MondrianTreeManipulationService {
     if (isTabMoving) {
       // will need to (1) remove from tab children
       _tree = _tree.updatePath(sourcePath, (tabLeaf) {
-        tabLeaf as MondrianTreeTabLeaf;
-
-        final tabsWithoutMoved = [
-          for (int i = 0; i < tabLeaf.tabs.length; i++)
-            if (i != tabIndexIfAny) tabLeaf.tabs[i]
-        ];
-
-        if (tabsWithoutMoved.length == 1) {
-          // return last remaining child as new leaf
-          return MondrianTreeLeaf(
-            id: tabsWithoutMoved.first,
-            fraction: tabLeaf.fraction,
-          );
-        }
-
-        return tabLeaf.copyWith(
-          tabs: tabsWithoutMoved,
-          activeTabIndex: max(0, tabLeaf.activeTabIndex - 1),
+        return _removeLeafFromTab(
+          tabLeaf: tabLeaf as MondrianTreeTabLeaf,
+          tabToRemove: tabLeaf.tabs[tabIndexIfAny],
         );
       });
       // (2) remove tab if that was the last child
