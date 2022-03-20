@@ -94,6 +94,9 @@ class MondrianWidget extends StatefulWidget {
         color: Color(0xAAFFFFFF),
       ),
     ),
+    this.onMoveLeafStart,
+    this.onMoveLeafUpdate,
+    this.onMoveLeafEnd,
   }) : super(key: key);
 
   // =========================================================================== FIELDS
@@ -163,6 +166,11 @@ class MondrianWidget extends StatefulWidget {
   // etc..
   // this allows for custom widgets without requiring the user to add the meta data etc themselves
   final Widget targetPositionIndicator;
+
+  final void Function(MondrianTreePathWithTabIndexIfAny leafPath)? onMoveLeafStart;
+  final void Function(MondrianTreePathWithTabIndexIfAny leafPath, DragUpdateDetails dragUpdateDetails)?
+      onMoveLeafUpdate;
+  final void Function(MondrianTreePathWithTabIndexIfAny leafPath)? onMoveLeafEnd;
 
   @override
   State<MondrianWidget> createState() => _MondrianWidgetState();
@@ -270,12 +278,29 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                                 (i == tabLeaf.activeTabIndex),
                               ),
                         ),
-                        onMoveEnd: _onMoveEnd,
                         onMoveStart: () {
+                          widget.onMoveLeafStart?.call(MondrianTreePathWithTabIndexIfAny(
+                            path: leafPath,
+                            tabIndexIfAny: i,
+                          ));
                           _onMoveStart(leafNode.tabs[i], leafPath, i);
                           _setActiveTab(leafPath, i);
                         },
-                        onMoveUpdate: (_) {},
+                        onMoveUpdate: (d) {
+                          widget.onMoveLeafUpdate?.call(
+                              MondrianTreePathWithTabIndexIfAny(
+                                path: leafPath,
+                                tabIndexIfAny: i,
+                              ),
+                              d);
+                        },
+                        onMoveEnd: () {
+                          widget.onMoveLeafEnd?.call(MondrianTreePathWithTabIndexIfAny(
+                            path: leafPath,
+                            tabIndexIfAny: i,
+                          ));
+                          _onMoveEnd();
+                        },
                       ),
                     ],
                     // TAB OVERHANG --------------------------------------------
@@ -292,11 +317,33 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                         ),
                         child: widget.buildTabBar?.call(leafPath) ?? _buildDefaultTabOverhang(),
                       ),
-                      onMoveEnd: _onMoveEnd,
                       onMoveStart: () {
+                        widget.onMoveLeafStart?.call(
+                          MondrianTreePathWithTabIndexIfAny(
+                            path: leafPath,
+                            tabIndexIfAny: null,
+                          ),
+                        );
                         _onMoveStart(leafNode.id, leafPath, null);
                       },
-                      onMoveUpdate: (_) {},
+                      onMoveUpdate: (d) {
+                        widget.onMoveLeafUpdate?.call(
+                          MondrianTreePathWithTabIndexIfAny(
+                            path: leafPath,
+                            tabIndexIfAny: null,
+                          ),
+                          d,
+                        );
+                      },
+                      onMoveEnd: () {
+                        widget.onMoveLeafEnd?.call(
+                          MondrianTreePathWithTabIndexIfAny(
+                            path: leafPath,
+                            tabIndexIfAny: null,
+                          ),
+                        );
+                        _onMoveEnd();
+                      },
                     ),
                   ],
                 ),
@@ -334,9 +381,33 @@ class _MondrianWidgetState extends State<MondrianWidget> {
             ),
             dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, null) ?? _defaultMoveDragIndicator,
             child: widget.buildLeafBar?.call(leafPath) ?? _buildDefaultLeafBar(leafNode.id),
-            onMoveEnd: _onMoveEnd,
-            onMoveStart: () => _onMoveStart(leafNode.id, leafPath, null),
-            onMoveUpdate: (_) {},
+            onMoveStart: () {
+              widget.onMoveLeafStart?.call(
+                MondrianTreePathWithTabIndexIfAny(
+                  path: leafPath,
+                  tabIndexIfAny: null,
+                ),
+              );
+              _onMoveStart(leafNode.id, leafPath, null);
+            },
+            onMoveUpdate: (d) {
+              widget.onMoveLeafUpdate?.call(
+                MondrianTreePathWithTabIndexIfAny(
+                  path: leafPath,
+                  tabIndexIfAny: null,
+                ),
+                d,
+              );
+            },
+            onMoveEnd: () {
+              widget.onMoveLeafEnd?.call(
+                MondrianTreePathWithTabIndexIfAny(
+                  path: leafPath,
+                  tabIndexIfAny: null,
+                ),
+              );
+              _onMoveEnd();
+            },
           ),
         ),
         // ACTUAL WIDGET -----------------------------------------------------
