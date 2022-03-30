@@ -334,7 +334,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1],
         targetPath: [0],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.left,
       );
 
@@ -369,7 +369,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1],
         targetPath: [0],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.center,
       );
 
@@ -425,7 +425,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1],
         targetPath: [0],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.center,
       );
 
@@ -461,7 +461,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1],
         targetPath: [0],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.center,
       );
 
@@ -512,7 +512,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [0],
         targetPath: [0],
-        tabIndexIfAny: 1,
+        sourceTabIndexIfAny: 1,
         targetSide: MondrianLeafMoveTargetDropPosition.left,
       );
 
@@ -563,7 +563,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [0],
         targetPath: [0],
-        tabIndexIfAny: 1,
+        sourceTabIndexIfAny: 1,
         targetSide: MondrianLeafMoveTargetDropPosition.right,
       );
 
@@ -606,7 +606,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [0],
         targetPath: [0],
-        tabIndexIfAny: 1,
+        sourceTabIndexIfAny: 1,
         targetSide: MondrianLeafMoveTargetDropPosition.left,
       );
 
@@ -660,7 +660,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1, 0],
         targetPath: [0, 0],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.left,
       );
 
@@ -719,7 +719,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1, 0],
         targetPath: [0, 0],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.top,
       );
 
@@ -755,7 +755,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [],
         targetPath: [],
-        tabIndexIfAny: 1,
+        sourceTabIndexIfAny: 1,
         targetSide: MondrianLeafMoveTargetDropPosition.left,
       );
 
@@ -821,7 +821,7 @@ void main() {
       final actualTreeAfterUpdate = initialTree.moveLeaf(
         sourcePath: [1, 0, 1],
         targetPath: [0, 1],
-        tabIndexIfAny: null,
+        sourceTabIndexIfAny: null,
         targetSide: MondrianLeafMoveTargetDropPosition.right,
       );
 
@@ -1465,4 +1465,7 @@ void main() {
 
     expect(expectedTreeAfterUpdate, equals(actualTreeAfterUpdate));
   });
+
+  // TODO add tests for resize
+  // TODO add tests for setActiveTab
 }

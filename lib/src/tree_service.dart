@@ -163,12 +163,12 @@ class MondrianTreeManipulationService {
     required MondrianTreePath targetPath,
     required MondrianLeafMoveTargetDropPosition targetSide,
     // this is needed on tab move, since the sourcePath still points to the parent (the tab leaf)
-    required int? tabIndexIfAny,
+    required int? sourceTabIndexIfAny,
   }) {
     var _tree = tree;
     var _rootAxis = tree.rootAxis;
 
-    final bool isTabMoving = (tabIndexIfAny != null);
+    final bool isTabMoving = (sourceTabIndexIfAny != null);
 
     assert(
       sourcePath.isEmpty == targetPath.isEmpty,
@@ -184,7 +184,7 @@ class MondrianTreeManipulationService {
     final _sourceNodeOrTabGroup = _tree.extractPath(sourcePath) as MondrianTreeLeaf;
     final sourceNode = !isTabMoving //
         ? _sourceNodeOrTabGroup
-        : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[tabIndexIfAny], fraction: 0);
+        : MondrianTreeLeaf(id: (_sourceNodeOrTabGroup as MondrianTreeTabLeaf).tabs[sourceTabIndexIfAny], fraction: 0);
 
     // DURING MOVE, IF THE ROOT NODE IS A TAB LEAF, THE TARGET PATH CAN BE EMPTY
     if (targetPath.isEmpty) {
@@ -378,7 +378,7 @@ class MondrianTreeManipulationService {
     if (!skipRemovalForSourceInSameParentAsTarget) {
       return _tree.deleteLeaf(
         sourcePathToLeaf: sourcePath,
-        tabIndexIfAny: tabIndexIfAny,
+        tabIndexIfAny: sourceTabIndexIfAny,
       );
     }
 

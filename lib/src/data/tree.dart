@@ -55,13 +55,15 @@ class MondrianTree {
     required MondrianTreePath targetPath,
     required MondrianLeafMoveTargetDropPosition targetSide,
     // this is needed on tab move, since the sourcePath still points to the parent (the tab leaf)
-    required int? tabIndexIfAny,
+    required int? sourceTabIndexIfAny,
   }) =>
       MondrianTreeManipulationService.moveLeaf(
         tree: this,
         sourcePath: sourcePath,
         targetPath: targetPath,
         targetSide: targetSide,
+        sourceTabIndexIfAny: sourceTabIndexIfAny,
+      );
 
   /// Resize the node under [pathToParent] with [nodeIndexInParent]
   // TODO replace parameters with resize details object
@@ -326,9 +328,9 @@ class MondrianTreeBranch extends MondrianTreeNodeAbst {
   MondrianTreeNodeAbst updateFraction(double newFraction) =>
       MondrianTreeBranch(children: children, fraction: newFraction);
 
-  MondrianTreeBranch updateChildFraction({required int index, required double newFraction}) {
-    final child1 = children[index];
-    final child2 = children[index + 1];
+  MondrianTreeBranch updateChildFraction({required int nodeIndexInParent, required double newFraction}) {
+    final child1 = children[nodeIndexInParent];
+    final child2 = children[nodeIndexInParent + 1];
 
     final diff = child1.fraction - newFraction;
     final new2 = child2.fraction + diff;
@@ -343,9 +345,9 @@ class MondrianTreeBranch extends MondrianTreeNodeAbst {
       fraction: fraction,
       children: [
         for (int i = 0; i < children.length; i++)
-          if (i == index) ...[
+          if (i == nodeIndexInParent) ...[
             child1Updated,
-          ] else if (i == index + 1) ...[
+          ] else if (i == nodeIndexInParent + 1) ...[
             child2Updated,
           ] else ...[
             children[i],
