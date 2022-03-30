@@ -62,8 +62,35 @@ class MondrianTree {
         sourcePath: sourcePath,
         targetPath: targetPath,
         targetSide: targetSide,
-        tabIndexIfAny: tabIndexIfAny,
+
+  /// Resize the node under [pathToParent] with [nodeIndexInParent]
+  // TODO replace parameters with resize details object
+  // TODO add tests
+  MondrianTree resizeLeaf({
+    required MondrianTreePath pathToParent,
+    required double newFraction,
+    required int nodeIndexInParent,
+  }) {
+    return updatePath(pathToParent, (node) {
+      return (node as MondrianTreeBranch).updateChildFraction(
+        nodeIndexInParent: nodeIndexInParent,
+        newFraction: newFraction,
       );
+    });
+  }
+
+  /// Set the active tab of the [MondrianTreeTabLeaf] under [pathToTabLeaf]
+  // TODO replace parameters with resize details object
+  // TODO add tests
+  MondrianTree setActiveTab({
+    required MondrianTreePath pathToTabLeaf,
+    required int newActiveIndex,
+  }) {
+    return updatePath(pathToTabLeaf, (_tabLeaf) {
+      _tabLeaf as MondrianTreeTabLeaf;
+      return _tabLeaf.copyWith(activeTabIndex: newActiveIndex);
+    });
+  }
 
   /// Create a new leaf next-to or inside an existing leaf
   MondrianTree createLeaf({
