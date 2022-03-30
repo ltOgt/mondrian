@@ -131,6 +131,7 @@ class MondrianWidget extends StatefulWidget {
   /// The same current [tree] will be exposed via [oldTree] inside the callback.
   ///
   /// This widget `DOES NOT` actually update [tree], opting to instead give full controll to the caller.
+  /// See [MondrianTree.applyUpdateDetails]
   ///
   /// Depending on the kind of the update, different [TreeUpdateDetailsAbst] are returned:
   /// - moving of a leaf

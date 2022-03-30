@@ -50,6 +50,34 @@ class MondrianTree {
     throw "Unknown type ${rootNode.runtimeType}";
   }
 
+  /// Switch over the subtypes of [TreeUpdateDetailsAbst] and call the apropriate function to perform the update.
+  MondrianTree applyUpdateDetails(TreeUpdateDetailsAbst updateDetails) {
+    if (updateDetails is TreeUpdateDetailsMove) {
+      return moveLeaf(
+        sourcePath: updateDetails.sourceLeafPath.path,
+        sourceTabIndexIfAny: updateDetails.sourceLeafPath.tabIndexIfAny,
+        targetPath: updateDetails.targetLeafPath,
+        targetSide: updateDetails.targetDropPosition,
+      );
+    }
+    if (updateDetails is TreeUpdateDetailsResize) {
+      return resizeLeaf(
+        pathToParent: updateDetails.pathToParent,
+        newFraction: updateDetails.newFraction,
+        nodeIndexInParent: updateDetails.nodeIndexInParent,
+      );
+    }
+    if (updateDetails is TreeUpdateDetailsTabFocus) {
+      return setActiveTab(
+        pathToTabLeaf: updateDetails.pathToTabLeaf,
+        newActiveIndex: updateDetails.newActiveIndex,
+      );
+    }
+    throw "Unexpected Type: $updateDetails";
+  }
+
+  // TODO replace parameters with move details object
+  // TODO add docs
   MondrianTree moveLeaf({
     required MondrianTreePath sourcePath,
     required MondrianTreePath targetPath,

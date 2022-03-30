@@ -107,12 +107,12 @@ class _MyAppState extends State<MyApp> {
           tree: isBaseExample ? baseExampleTree : mondrianExampleTree,
           resizeDraggerWidth: isBaseExample ? 2 : 10.0,
           resizeDraggerColor: isBaseExample ? const Color(0xFFAAAAFF) : Colors.black,
-          onUpdateTree: (tree) {
+          onUpdateTree: (tree, details) {
             setState(() {
               if (isBaseExample) {
-                baseExampleTree = tree;
+                baseExampleTree = tree.applyUpdateDetails(details);
               } else {
-                mondrianExampleTree = tree;
+                mondrianExampleTree = tree.applyUpdateDetails(details);
               }
             });
           },
