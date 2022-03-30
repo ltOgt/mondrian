@@ -166,7 +166,7 @@ class MondrianTreeManipulationService {
     required int? sourceTabIndexIfAny,
   }) {
     // moving tabs around in the same group is not handled by this function
-    if (sourceTabIndexIfAny != null && sourcePath == targetPath) return tree;
+    if (sourceTabIndexIfAny != null && sourcePath == targetPath && targetSide.isCenter) return tree;
 
     var _tree = tree;
     var _rootAxis = tree.rootAxis;
