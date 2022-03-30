@@ -165,6 +165,9 @@ class MondrianTreeManipulationService {
     // this is needed on tab move, since the sourcePath still points to the parent (the tab leaf)
     required int? sourceTabIndexIfAny,
   }) {
+    // moving tabs around in the same group is not handled by this function
+    if (sourceTabIndexIfAny != null && sourcePath == targetPath) return tree;
+
     var _tree = tree;
     var _rootAxis = tree.rootAxis;
 
