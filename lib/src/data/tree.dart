@@ -20,6 +20,23 @@ class MondrianTree {
     required this.rootAxis,
   });
 
+  MondrianTreeLeafId idFromPath(MondrianTreePathWithTabIndexIfAny path) {
+    final node = extractPath(path.path);
+    if (node is MondrianTreeBranch) {
+      throw "Path points to a branch, not a leaf";
+    }
+    if (node is MondrianTreeTabLeaf) {
+      if (path.tabIndexIfAny == null) {
+        throw "Path points to tab leaf, but no specific tab";
+      }
+      return node.tabs[path.tabIndexIfAny!];
+    }
+    if (node is MondrianTreeLeaf) {
+      return node.id;
+    }
+    throw "Unknown type ${rootNode.runtimeType}";
+  }
+
   MondrianTreePathWithTabIndexIfAny? pathFromId(MondrianTreeLeafId id) =>
       MondrianTreeManipulationService.treePathFromId(id, this);
 

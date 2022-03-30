@@ -301,6 +301,60 @@ void main() {
     });
   });
 
+  group("Id from Path", () {
+    final tree = MondrianTree(
+      rootAxis: MondrianAxis.vertical,
+      rootNode: MondrianTreeBranch(
+        fraction: 1,
+        children: [
+          const MondrianTreeLeaf(fraction: .1, id: MondrianTreeLeafId("Leaf 0")),
+          const MondrianTreeBranch(
+            fraction: .4,
+            children: [
+              MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 1")),
+              MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 2")),
+            ],
+          ),
+          MondrianTreeBranch(
+            fraction: .5,
+            children: [
+              const MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 3")),
+              MondrianTreeBranch(
+                fraction: .5,
+                children: [
+                  const MondrianTreeLeaf(fraction: .5, id: MondrianTreeLeafId("Leaf 4")),
+                  const MondrianTreeLeaf(fraction: .3, id: MondrianTreeLeafId("Leaf 5")),
+                  MondrianTreeTabLeaf(
+                    fraction: .2,
+                    tabs: [
+                      const MondrianTreeLeafId("Tab Id 1"),
+                      const MondrianTreeLeafId("Tab Id 2"),
+                    ],
+                    activeTabIndex: 0,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    test("Extract Leaf", () {
+      final leafId = tree.idFromPath(MondrianTreePathWithTabIndexIfAny(path: [2, 1, 0], tabIndexIfAny: null));
+      const expected = MondrianTreeLeafId("Leaf 4");
+
+      expect(leafId, equals(expected));
+    });
+
+    test("Extract Tab", () {
+      final leafId = tree.idFromPath(MondrianTreePathWithTabIndexIfAny(path: [2, 1, 2], tabIndexIfAny: 0));
+      const expected = MondrianTreeLeafId("Tab Id 1");
+
+      expect(leafId, equals(expected));
+    });
+  });
+
   // TODO need more test cases for
   // - move tab out of tab leaf into higher branch
   // - move tab out of tab leaf into same branch
