@@ -78,6 +78,7 @@ class MondrianTree {
 
   // TODO replace parameters with move details object
   // TODO add docs
+  /// Add the leaf under [sourcePath] to [targetSide] of [targetPath] and remove it from its previous position.
   MondrianTree moveLeaf({
     required MondrianTreePath sourcePath,
     required MondrianTreePath targetPath,
