@@ -127,13 +127,19 @@ class MondrianWidget extends StatefulWidget {
   /// {@endtemplate}
   final MondrianTree tree;
 
-  /// Callback for when the [tree] was changed by the user.
+  /// Callback for when the [tree] was requested to be changed by the user.
+  /// The same current [tree] will be exposed via [oldTree] inside the callback.
   ///
-  /// This can be caused by
-  /// - resizing of two neighbouring windows (leafs/branches)
+  /// This widget `DOES NOT` actually update [tree], opting to instead give full controll to the caller.
+  ///
+  /// Depending on the kind of the update, different [TreeUpdateDetailsAbst] are returned:
   /// - moving of a leaf
+  ///   - see [TreeUpdateDetailsMove]
+  /// - resizing of two neighbouring nodes (leafs/branches)
+  ///   - see [TreeUpdateDetailsResize]
   /// - changing focus inside a tab leaf
-  final void Function(MondrianTree tree) onUpdateTree;
+  ///   - see [TreeUpdateDetailsTabFocus]
+  final void Function(MondrianTree oldTree, TreeUpdateDetailsAbst updateDetails) onUpdateTree;
 
   /// {@macro LeafBuilder}
   final LeafBuilder buildLeaf;
@@ -280,18 +286,6 @@ class _MondrianWidgetState extends State<MondrianWidget> {
   MondrianTreeLeafId? _movingLeaf;
 
   // =========================================================================== RESIZE
-  void _onResize(
-    MondrianTreePath pathToParent,
-    double newFraction,
-    int index,
-  ) {
-    widget.onUpdateTree(widget.tree.updatePath(pathToParent, (node) {
-      return (node as MondrianTreeBranch).updateChildFraction(
-        index: index,
-        newFraction: newFraction,
-      );
-    }));
-  }
 
   // =========================================================================== BUILD
 
@@ -299,7 +293,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
   Widget build(BuildContext context) {
     return _MondrianLayoutAndResize(
       tree: widget.tree,
-      onResize: _onResize,
+      onResize: (resizeDetails) => widget.onUpdateTree(widget.tree, resizeDetails),
       resolveLeafToWidget: _resolveLeafToWidget,
       resizeDraggerColor: widget.resizeDraggerColor,
       resizeDraggerWidth: widget.resizeDraggerWidth,
@@ -314,21 +308,6 @@ class _MondrianWidgetState extends State<MondrianWidget> {
   void _onMoveEnd() {
     _movingLeaf = null;
     setState(() {});
-  }
-
-  void _onDrop({
-    required MondrianLeafMoveTargetDropPosition targetDropPosition,
-    required MondrianTreePath targetLeafPath,
-    required MondrianTreePathWithTabIndexIfAny sourceLeafPath,
-  }) {
-    widget.onUpdateTree(
-      widget.tree.moveLeaf(
-        targetPath: targetLeafPath,
-        targetSide: targetDropPosition,
-        sourcePath: sourceLeafPath.path,
-        tabIndexIfAny: sourceLeafPath.tabIndexIfAny,
-      ),
-    );
   }
 
   // =========================================================================== RESOLVE LEAF
@@ -364,7 +343,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                         ),
                         dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, i) ?? _defaultMoveDragIndicator,
                         child: GestureDetector(
-                          onTap: () => _setActiveTab(leafPath, i),
+                          onTap: () => widget.onUpdateTree(
+                            widget.tree,
+                            TreeUpdateDetailsTabFocus(pathToTabLeaf: leafPath, newActiveIndex: i),
+                          ),
                           child: widget.buildTabIndicator?.call(leafPath, i) ??
                               _buildDefaultTabIndicator(
                                 tabLeaf.tabs[i],
@@ -377,7 +359,10 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                             tabIndexIfAny: i,
                           ));
                           _onMoveStart(leafNode.tabs[i], leafPath, i);
-                          _setActiveTab(leafPath, i);
+                          widget.onUpdateTree(
+                            widget.tree,
+                            TreeUpdateDetailsTabFocus(pathToTabLeaf: leafPath, newActiveIndex: i),
+                          );
                         },
                         onMoveUpdate: (d) {
                           widget.onMoveLeafUpdate?.call(
@@ -446,10 +431,13 @@ class _MondrianWidgetState extends State<MondrianWidget> {
           // ACTUAL WIDGET -----------------------------------------------------
           Expanded(
             child: MondrianLeafMoveTarget(
-              onDrop: (pos, sourceLeafPath) => _onDrop(
-                targetLeafPath: leafPath,
-                targetDropPosition: pos,
-                sourceLeafPath: sourceLeafPath,
+              onDrop: (pos, sourceLeafPath) => widget.onUpdateTree(
+                widget.tree,
+                TreeUpdateDetailsMove(
+                  targetLeafPath: leafPath,
+                  targetDropPosition: pos,
+                  sourceLeafPath: sourceLeafPath,
+                ),
               ),
               isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
               buildTargetPositionIndicators:
@@ -510,10 +498,13 @@ class _MondrianWidgetState extends State<MondrianWidget> {
         // ACTUAL WIDGET -----------------------------------------------------
         Expanded(
           child: MondrianLeafMoveTarget(
-            onDrop: (pos, sourceLeafPath) => _onDrop(
-              targetLeafPath: leafPath,
-              targetDropPosition: pos,
-              sourceLeafPath: sourceLeafPath,
+            onDrop: (pos, sourceLeafPath) => widget.onUpdateTree(
+              widget.tree,
+              TreeUpdateDetailsMove(
+                targetLeafPath: leafPath,
+                targetDropPosition: pos,
+                sourceLeafPath: sourceLeafPath,
+              ),
             ),
             isActive: _movingLeaf != null && _movingLeaf != leafNode.id,
             buildTargetPositionIndicators:
@@ -528,15 +519,6 @@ class _MondrianWidgetState extends State<MondrianWidget> {
           ),
         ),
       ],
-    );
-  }
-
-  void _setActiveTab(MondrianTreePath leafPath, int i) {
-    return widget.onUpdateTree(
-      widget.tree.updatePath(leafPath, (_tabLeaf) {
-        _tabLeaf as MondrianTreeTabLeaf;
-        return _tabLeaf.copyWith(activeTabIndex: i);
-      }),
     );
   }
 
@@ -607,17 +589,9 @@ typedef _LeafResolver = Widget Function(
 );
 
 /// {@template _LeafResizeCallback}
-/// Called when a the seperator between two nodes is used to resize the nodes next to it.
-///
-/// - The [pathToParent] points to the parent branch in which the children have been resized.
-/// - The [index] points to the node before the seperator inside the list of children pointerd to by [pathToParent].
-/// - The [newFraction] also points to the node before the seperator, the difference must be subtracted from the node after.
+/// Callback for when the resize seperator between two nodes is dragged by the user to perform a resize.
 /// {@endtemplate}
-typedef _LeafResizeCallback = void Function(
-  MondrianTreePath pathToParent,
-  double newFraction,
-  int index,
-);
+typedef _LeafResizeCallback = void Function(TreeUpdateDetailsResize resizeDetails);
 
 /// ============================================================================ WIDGET - TREE ENTRY
 
@@ -748,7 +722,11 @@ class _MondrianNode extends StatelessWidget {
     final newNeighbourExtend = maxExtendAxis * newNeighbourFraction;
     if (newNeighbourExtend < _minNodeExtend) return;
 
-    onResize(path, newFraction, index);
+    onResize(TreeUpdateDetailsResize(
+      pathToParent: path,
+      newFraction: newFraction,
+      nodeIndexInParent: index,
+    ));
   }
 
   // TODO: resize hit area should be larger than the visual area
