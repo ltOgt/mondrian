@@ -32,6 +32,7 @@ typedef TabIndicatorBuilder = Widget Function(
   MondrianTreePath tabLeafPath,
   int tabIndex,
   MondrianTreeLeafId tabId,
+  bool isActive,
 );
 
 /// {@template TabBarBuilder}
@@ -353,7 +354,12 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                               );
                             }
                           },
-                          child: widget.buildTabIndicator?.call(leafPath, i, tabLeaf.tabs[i]) ??
+                          child: widget.buildTabIndicator?.call(
+                                leafPath, // path to tab group
+                                i, // tab index
+                                tabLeaf.tabs[i], // tab id
+                                i == tabLeaf.activeTabIndex, // isActive
+                              ) ??
                               _buildDefaultTabIndicator(
                                 tabLeaf.tabs[i],
                                 (i == tabLeaf.activeTabIndex),
