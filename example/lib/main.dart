@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ltogt_utils_flutter/ltogt_utils_flutter.dart';
 import 'package:mondrian/mondrian.dart';
+// ignore: implementation_imports
 import 'package:mondrian/src/debug.dart';
 
 void main() {

@@ -31,6 +31,7 @@ import 'package:mondrian/src/debug.dart';
 typedef TabIndicatorBuilder = Widget Function(
   MondrianTreePath tabLeafPath,
   int tabIndex,
+  MondrianTreeLeafId tabId,
 );
 
 /// {@template TabBarBuilder}
@@ -352,7 +353,7 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                               );
                             }
                           },
-                          child: widget.buildTabIndicator?.call(leafPath, i) ??
+                          child: widget.buildTabIndicator?.call(leafPath, i, tabLeaf.tabs[i]) ??
                               _buildDefaultTabIndicator(
                                 tabLeaf.tabs[i],
                                 (i == tabLeaf.activeTabIndex),
