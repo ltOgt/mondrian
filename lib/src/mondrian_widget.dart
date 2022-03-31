@@ -344,10 +344,14 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                         ),
                         dragIndicator: widget.buildMoveDragIndicator?.call(leafPath, i) ?? _defaultMoveDragIndicator,
                         child: GestureDetector(
-                          onTap: () => widget.onUpdateTree(
-                            widget.tree,
-                            TreeUpdateDetailsTabFocus(pathToTabLeaf: leafPath, newActiveIndex: i),
-                          ),
+                          onTap: () {
+                            if (i != tabLeaf.activeTabIndex) {
+                              widget.onUpdateTree(
+                                widget.tree,
+                                TreeUpdateDetailsTabFocus(pathToTabLeaf: leafPath, newActiveIndex: i),
+                              );
+                            }
+                          },
                           child: widget.buildTabIndicator?.call(leafPath, i) ??
                               _buildDefaultTabIndicator(
                                 tabLeaf.tabs[i],
@@ -360,10 +364,12 @@ class _MondrianWidgetState extends State<MondrianWidget> {
                             tabIndexIfAny: i,
                           ));
                           _onMoveStart(leafNode.tabs[i], leafPath, i);
-                          widget.onUpdateTree(
-                            widget.tree,
-                            TreeUpdateDetailsTabFocus(pathToTabLeaf: leafPath, newActiveIndex: i),
-                          );
+                          if (i != tabLeaf.activeTabIndex) {
+                            widget.onUpdateTree(
+                              widget.tree,
+                              TreeUpdateDetailsTabFocus(pathToTabLeaf: leafPath, newActiveIndex: i),
+                            );
+                          }
                         },
                         onMoveUpdate: (d) {
                           widget.onMoveLeafUpdate?.call(
