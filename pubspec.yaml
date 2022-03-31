@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   ltogt_utils_flutter:
     path: ../ltogt_utils_flutter
+  mondrian_data:
+    path: ../mondrian_data
 
 dev_dependencies:
   flutter_test:

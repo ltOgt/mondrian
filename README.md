@@ -1,5 +1,7 @@
 # Mondrian - Tiling Window Manager for Flutter
 
+(See [mondrian_data](https://github.com/ltOgt/mondrian_data) for the non-flutter part of this projection)
+
 The `MondrianWidget` from this package takes in a `MondrianTree` containing `MondrianTreeBranch`es, `MondrianTreeTabLeaf`s and `MondrianTreeLeaf`s.
 Inside the widget, this tree is then resolved to nested columns and rows which the user can resize, move, tab & un-tab, delte and add to.
 

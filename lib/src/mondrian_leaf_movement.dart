@@ -3,66 +3,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mondrian/mondrian.dart';
 
-// ============================================================================= DROP POSITION
-
-/// The position inside the [MondrianLeafMoveTarget] where the [MondrianLeafMoveHandle] was dropped.
-/// Depending on the drop position, the tree has to be altered in different ways.
-enum MondrianLeafMoveTargetDropPosition {
-  top,
-  left,
-  center,
-  right,
-  bottom,
-}
-
-// TODO still need to use the helpers provided by this extension in more of the movement code
-extension MondrianLeafMoveTargetDropPositionX on MondrianLeafMoveTargetDropPosition {
-  bool get isTop => this == MondrianLeafMoveTargetDropPosition.top;
-  bool get isLeft => this == MondrianLeafMoveTargetDropPosition.left;
-  bool get isCenter => this == MondrianLeafMoveTargetDropPosition.center;
-  bool get isRight => this == MondrianLeafMoveTargetDropPosition.right;
-  bool get isBottom => this == MondrianLeafMoveTargetDropPosition.bottom;
-
-  MondrianAxis? get asAxis {
-    switch (this) {
-      case MondrianLeafMoveTargetDropPosition.center:
-        return null;
-      case MondrianLeafMoveTargetDropPosition.left:
-      case MondrianLeafMoveTargetDropPosition.right:
-        return MondrianAxis.horizontal;
-      case MondrianLeafMoveTargetDropPosition.top:
-      case MondrianLeafMoveTargetDropPosition.bottom:
-        return MondrianAxis.vertical;
-    }
-  }
-
-  bool? get isPositionBefore {
-    switch (this) {
-      case MondrianLeafMoveTargetDropPosition.center:
-        return null;
-      case MondrianLeafMoveTargetDropPosition.top:
-      case MondrianLeafMoveTargetDropPosition.left:
-        return true;
-      case MondrianLeafMoveTargetDropPosition.right:
-      case MondrianLeafMoveTargetDropPosition.bottom:
-        return false;
-    }
-  }
-
-  bool? get isPositionAfter {
-    switch (this) {
-      case MondrianLeafMoveTargetDropPosition.center:
-        return null;
-      case MondrianLeafMoveTargetDropPosition.top:
-      case MondrianLeafMoveTargetDropPosition.left:
-        return false;
-      case MondrianLeafMoveTargetDropPosition.right:
-      case MondrianLeafMoveTargetDropPosition.bottom:
-        return true;
-    }
-  }
-}
-
 // ============================================================================= MOVE HANDLE
 
 /// Wrap [child] with this widget to enable dragging it onto [MondrianLeafMoveTarget]s.
