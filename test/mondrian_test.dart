@@ -925,6 +925,41 @@ void main() {
       // need to compare encoded versions because the transient generated ids of the tab leafs obviously differ
       expect(actualTreeAfterUpdate.encode(), equals(expectedTreeAfterUpdate.encode()));
     });
+
+    test("Move leaf from root two-tab to the right", () {
+      final oldTree = MondrianTree(
+        rootAxis: MondrianAxis.vertical,
+        rootNode: MondrianTreeTabLeaf(
+          activeTabIndex: 0,
+          fraction: 1,
+          tabs: [
+            const MondrianTreeLeafId("confusion"),
+            const MondrianTreeLeafId("biology"),
+          ],
+        ),
+      );
+
+      final updateDetails = TreeUpdateDetailsMove(
+        sourceLeafPath: MondrianTreePathWithTabIndexIfAny(path: [], tabIndexIfAny: 0),
+        targetLeafPath: [],
+        targetDropPosition: MondrianLeafMoveTargetDropPosition.right,
+      );
+
+      const expectedTree = MondrianTree(
+        rootAxis: MondrianAxis.horizontal,
+        rootNode: MondrianTreeBranch(
+          fraction: 1,
+          children: [
+            MondrianTreeLeaf(fraction: 0.5, id: MondrianTreeLeafId("biology")),
+            MondrianTreeLeaf(fraction: 0.5, id: MondrianTreeLeafId("confusion")),
+          ],
+        ),
+      );
+
+      final actualTree = oldTree.applyUpdateDetails(updateDetails);
+
+      expect(actualTree.encode(), equals(expectedTree.encode()));
+    });
   });
 
   group("Create Leaf", () {

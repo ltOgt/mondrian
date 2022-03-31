@@ -214,7 +214,7 @@ class MondrianTreeManipulationService {
             )
           // Replace with leaf if no more than one tab would remain
           : MondrianTreeLeaf(
-              id: _rootNode.tabs[0],
+              id: tabsWithoutMoved.first,
               fraction: .5,
             );
 
